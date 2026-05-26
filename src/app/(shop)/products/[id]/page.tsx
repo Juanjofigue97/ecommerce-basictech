@@ -18,6 +18,21 @@ import { ProductDetail } from "@/components/products/ProductDetail"
 import { ProductCard } from "@/components/products/ProductCard"
 import { Product } from "@/types"
 
+interface ProductVariant {
+  id: string
+  label: string | null
+  sku: string | null
+  stock: number
+  price: number | null
+  attributeValueIds: Record<string, string>
+}
+
+interface VariantAttribute {
+  id: string
+  name: string
+  values: { id: string; value: string }[]
+}
+
 interface ProductPageProps {
   params: Promise<{ id: string }>
 }
@@ -25,6 +40,8 @@ interface ProductPageProps {
 export default function ProductPage({ params }: ProductPageProps) {
   const { id } = use(params)
   const [product, setProduct] = useState<Product | null>(null)
+  const [variants, setVariants] = useState<ProductVariant[]>([])
+  const [variantAttributes, setVariantAttributes] = useState<VariantAttribute[]>([])
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +62,10 @@ export default function ProductPage({ params }: ProductPageProps) {
         }
 
         const data = await response.json()
-        setProduct(data)
+        const { variants: v = [], variantAttributes: va = [], ...productData } = data
+        setProduct(productData)
+        setVariants(v)
+        setVariantAttributes(va)
 
         // Fetch related products
         const relatedResponse = await fetch(
@@ -141,7 +161,7 @@ export default function ProductPage({ params }: ProductPageProps) {
       {/* Product Content */}
       <div className="grid gap-8 lg:grid-cols-2">
         <ProductGallery images={product.images} productName={product.name} />
-        <ProductDetail product={product} />
+        <ProductDetail product={product} variants={variants} variantAttributes={variantAttributes} />
       </div>
 
       {/* Related Products */}

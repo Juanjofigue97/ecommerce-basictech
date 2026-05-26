@@ -56,7 +56,8 @@ function ProductsContent() {
   const activeFilterCount =
     filters.brands.length +
     filters.categories.length +
-    (filters.priceRange[0] > 0 || filters.priceRange[1] < 10000 ? 1 : 0)
+    (filters.priceRange[0] > 0 || filters.priceRange[1] < 5_000_000 ? 1 : 0) +
+    Object.values(filters.attributeValues).reduce((s, ids) => s + ids.length, 0)
 
   return (
     <div className="container mx-auto px-4 py-6">

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAdminStore } from "@/stores/admin-store"
+import { useCurrency } from "@/hooks/use-currency"
 
 const statusConfig = {
   active: { label: "Activo", variant: "default" as const, className: "bg-green-600" },
@@ -89,6 +90,7 @@ function UsersSkeleton() {
 
 export default function AdminUsersPage() {
   const { users, loading, fetchUsers } = useAdminStore()
+  const formatPrice = useCurrency()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [roleFilter, setRoleFilter] = useState("all")
@@ -167,7 +169,7 @@ export default function AdminUsersPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">S/ {totalSpent.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{formatPrice(totalSpent)}</p>
           </CardContent>
         </Card>
       </div>
@@ -261,7 +263,7 @@ export default function AdminUsersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>{user.orders}</TableCell>
-                        <TableCell>S/ {user.totalSpent.toFixed(2)}</TableCell>
+                        <TableCell>{formatPrice(user.totalSpent)}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(user.createdAt).toLocaleDateString("es-PE")}
                         </TableCell>

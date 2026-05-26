@@ -38,7 +38,7 @@ export async function GET() {
       notes: order.notes,
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
-      shippingAddress: `${order.address.address}, ${order.address.city}`,
+      shippingAddress: order.address ? `${order.address.address}, ${order.address.city}` : "",
       items: order.items.map((item) => ({
         productId: item.productId,
         name: item.name,
@@ -71,12 +71,15 @@ export async function POST(request: NextRequest) {
       data: {
         orderNumber,
         status: "PENDING",
+        channel: body.channel ?? "ONLINE",
         subtotal: body.subtotal,
         shipping: body.shipping,
         total: body.total,
         paymentMethod: body.paymentMethod,
         notes: body.notes,
+        customerId: body.customerId,
         userId: body.userId,
+        cashierId: body.cashierId,
         addressId: body.addressId,
         items: {
           create: body.items.map((item: { productId: string; name: string; price: number; quantity: number }) => ({

@@ -52,6 +52,31 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // Attribute value filters: avGroup=attrId:valueId1,valueId2 (AND across attrs, OR within)
+    const avGroups = searchParams.getAll("avGroup")
+    if (avGroups.length > 0) {
+      const andConditions = avGroups
+        .map((group) => {
+          const colonIdx = group.indexOf(":")
+          if (colonIdx === -1) return null
+          const valueIds = group.slice(colonIdx + 1).split(",").filter(Boolean)
+          if (valueIds.length === 0) return null
+          return {
+            variants: {
+              some: {
+                isActive: true,
+                values: { some: { attributeValueId: { in: valueIds } } },
+              },
+            },
+          }
+        })
+        .filter(Boolean)
+
+      if (andConditions.length > 0) {
+        where.AND = andConditions
+      }
+    }
+
     // Build orderBy
     let orderBy: Record<string, string> = { createdAt: "desc" }
     switch (sortBy) {
@@ -75,6 +100,25 @@ export async function GET(request: NextRequest) {
       include: {
         category: true,
         brand: true,
+        variants: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            label: true,
+            stock: true,
+            values: {
+              select: {
+                attributeValue: {
+                  select: {
+                    value: true,
+                    attribute: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
       },
       take: limit ? Number(limit) : undefined,
       skip: offset ? Number(offset) : undefined,
@@ -83,7 +127,32 @@ export async function GET(request: NextRequest) {
     const total = await prisma.product.count({ where })
 
     return NextResponse.json({
-      products: products.map(transformProduct),
+      products: products.map((p) => {
+        const mappedVariants = p.variants.map((v) => ({
+          id: v.id,
+          label: v.label,
+          stock: v.stock,
+          values: v.values.map((vv) => ({
+            attrName: vv.attributeValue.attribute.name,
+            value: vv.attributeValue.value,
+          })),
+        }))
+
+        const attrNamesOrdered: string[] = []
+        const seen = new Set<string>()
+        for (const v of p.variants) {
+          for (const vv of v.values) {
+            const name = vv.attributeValue.attribute.name
+            if (!seen.has(name)) { seen.add(name); attrNamesOrdered.push(name) }
+          }
+        }
+
+        return {
+          ...transformProduct(p),
+          variants: mappedVariants,
+          variantAttributeNames: attrNamesOrdered,
+        }
+      }),
       total,
       limit: limit ? Number(limit) : null,
       offset: offset ? Number(offset) : 0,
@@ -101,6 +170,27 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
+    type VariantInput = {
+      sku?: string
+      stock: number
+      price?: number
+      attributeValueIds: string[]
+    }
+    const variants: VariantInput[] = body.variants ?? []
+
+    // Resolve attribute value labels to auto-generate variant label
+    let attributeValueMap: Record<string, string> = {}
+    if (variants.length > 0) {
+      const allIds = [...new Set(variants.flatMap((v) => v.attributeValueIds ?? []))]
+      if (allIds.length > 0) {
+        const avs = await prisma.attributeValue.findMany({
+          where: { id: { in: allIds } },
+          select: { id: true, value: true },
+        })
+        attributeValueMap = Object.fromEntries(avs.map((av) => [av.id, av.value]))
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name: body.name,
@@ -108,17 +198,33 @@ export async function POST(request: NextRequest) {
         description: body.description,
         price: body.price,
         comparePrice: body.comparePrice,
-        stock: body.stock || 0,
+        stock: variants.length > 0 ? variants.reduce((s, v) => s + (v.stock ?? 0), 0) : (body.stock || 0),
         images: body.images || [],
         specs: body.specs || {},
         isNew: body.isNew || false,
         isFeatured: body.isFeatured || false,
         categoryId: body.categoryId,
         brandId: body.brandId,
+        variants: variants.length > 0 ? {
+          create: variants.map((v) => {
+            const ids = v.attributeValueIds ?? []
+            const label = ids.map((id) => attributeValueMap[id] ?? "").filter(Boolean).join(" / ")
+            return {
+              label: label || undefined,
+              sku: v.sku || undefined,
+              stock: v.stock ?? 0,
+              price: v.price ?? null,
+              values: ids.length > 0 ? {
+                create: ids.map((attributeValueId) => ({ attributeValueId })),
+              } : undefined,
+            }
+          }),
+        } : undefined,
       },
       include: {
         category: true,
         brand: true,
+        variants: { orderBy: { createdAt: "asc" } },
       },
     })
 

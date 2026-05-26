@@ -41,21 +41,22 @@ export async function GET(request: NextRequest) {
       id: order.id,
       orderNumber: order.orderNumber,
       customer: {
-        name: order.user.name,
-        email: order.user.email,
+        name: order.user?.name ?? "Cliente",
+        email: order.user?.email ?? "",
       },
       status: order.status.toLowerCase(),
       subtotal: Number(order.subtotal),
       shipping: Number(order.shipping),
       total: Number(order.total),
       paymentMethod: order.paymentMethod,
-      shippingAddress: {
+      channel: order.channel,
+      shippingAddress: order.address ? {
         name: order.address.name,
         address: order.address.address,
         city: order.address.city,
         state: order.address.state,
         zipCode: order.address.zipCode,
-      },
+      } : null,
       items: order.items.map((item) => ({
         name: item.name,
         quantity: item.quantity,

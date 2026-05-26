@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Minus, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CartItem as CartItemType } from "@/types"
+import { useCurrency } from "@/hooks/use-currency"
 
 interface CartItemProps {
   item: CartItemType
@@ -14,6 +15,7 @@ interface CartItemProps {
 
 export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
   const { product, quantity } = item
+  const formatPrice = useCurrency()
 
   return (
     <div className="flex gap-4 py-4">
@@ -77,11 +79,11 @@ export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
           {/* Price */}
           <div className="text-right">
             <p className="font-semibold text-primary">
-              S/ {(product.price * quantity).toFixed(2)}
+              {formatPrice(product.price * quantity)}
             </p>
             {quantity > 1 && (
               <p className="text-xs text-muted-foreground">
-                S/ {product.price.toFixed(2)} c/u
+                {formatPrice(product.price)} c/u
               </p>
             )}
           </div>

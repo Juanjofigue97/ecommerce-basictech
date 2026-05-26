@@ -39,6 +39,42 @@ enum PaymentMethod {
   CASH_ON_DELIVERY
 }
 
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum CustomerSource {
+  ONLINE
+  PHYSICAL
+  BOTH
+}
+
+enum OrderChannel {
+  ONLINE
+  POS
+}
+
+enum SupplierType {
+  NATURAL
+  JURIDICA
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  PARTIAL
+  RECEIVED
+  CANCELLED
+}
+
 // ==================== MODELS ====================
 
 model User {
@@ -53,10 +89,33 @@ model User {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  addresses Address[]
-  orders    Order[]
+  addresses       Address[]
+  orders          Order[]         @relation("OrderUser")
+  cashierOrders   Order[]         @relation("OrderCashier")
+  customer        Customer?
+  purchaseOrders  PurchaseOrder[]
 
   @@map("users")
+}
+
+model Customer {
+  id       String         @id @default(cuid())
+  name     String
+  phone    String?
+  email    String?        @unique
+  document String?
+  source   CustomerSource @default(PHYSICAL)
+  status   CustomerStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  orders Order[]
+
+  @@index([userId])
+  @@map("customers")
 }
 
 model Category {
@@ -67,7 +126,8 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  products Product[]
+  products   Product[]
+  attributes CategoryAttribute[]
 
   @@map("categories")
 }
@@ -107,8 +167,10 @@ model Product {
   brandId String
   brand   Brand @relation(fields: [brandId], references: [id])
 
-  orderItems  OrderItem[]
-  attributes  ProductAttribute[]
+  orderItems          OrderItem[]
+  attributes          ProductAttribute[]
+  variants            ProductVariant[]
+  purchaseOrderItems  PurchaseOrderItem[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -139,27 +201,36 @@ model Address {
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique
-  status          OrderStatus @default(PENDING)
-  subtotal        Decimal     @db.Decimal(10, 2)
-  shipping        Decimal     @db.Decimal(10, 2)
-  total           Decimal     @db.Decimal(10, 2)
+  id               String       @id @default(cuid())
+  orderNumber      String       @unique
+  status           OrderStatus  @default(PENDING)
+  channel          OrderChannel @default(ONLINE)
+  subtotal         Decimal      @db.Decimal(10, 2)
+  shipping         Decimal      @db.Decimal(10, 2)
+  total            Decimal      @db.Decimal(10, 2)
   paymentMethod    String
   paymentSessionId String?
-  notes           String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  notes            String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
 
-  addressId String
-  address   Address @relation(fields: [addressId], references: [id])
+  userId String?
+  user   User?   @relation("OrderUser", fields: [userId], references: [id])
+
+  cashierId String?
+  cashier   User?   @relation("OrderCashier", fields: [cashierId], references: [id])
+
+  addressId String?
+  address   Address? @relation(fields: [addressId], references: [id])
 
   items OrderItem[]
 
+  @@index([customerId])
   @@index([userId])
+  @@index([cashierId])
   @@index([orderNumber])
   @@map("orders")
 }
@@ -177,7 +248,11 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
   @@index([orderId])
+  @@index([variantId])
   @@map("order_items")
 }
 
@@ -188,24 +263,37 @@ model Attribute {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  values AttributeValue[]
+  values     AttributeValue[]
+  categories CategoryAttribute[]
 
   @@map("attributes")
 }
 
 model AttributeValue {
-  id          String @id @default(cuid())
-  value       String
-  slug        String
+  id    String @id @default(cuid())
+  value String
+  slug  String
 
   attributeId String
   attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
-  products ProductAttribute[]
+  products      ProductAttribute[]
+  variantValues ProductVariantValue[]
 
   @@unique([attributeId, slug])
   @@index([attributeId])
   @@map("attribute_values")
+}
+
+model CategoryAttribute {
+  categoryId  String
+  attributeId String
+
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, attributeId])
+  @@map("category_attributes")
 }
 
 model ProductAttribute {
@@ -219,6 +307,95 @@ model ProductAttribute {
   @@map("product_attributes")
 }
 
+model ProductVariant {
+  id       String  @id @default(cuid())
+  label    String?
+  sku      String? @unique
+  stock    Int     @default(0)
+  price    Decimal? @db.Decimal(10, 2)
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  values     ProductVariantValue[]
+  orderItems OrderItem[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ProductVariantValue {
+  variantId        String
+  attributeValueId String
+
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attributeValue AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, attributeValueId])
+  @@map("product_variant_values")
+}
+
+model Supplier {
+  id        String         @id @default(cuid())
+  nit       String         @unique
+  name      String
+  phone     String?
+  address   String?
+  type      SupplierType   @default(NATURAL)
+  status    SupplierStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([nit])
+  @@map("suppliers")
+
+  purchaseOrders PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  orderNumber String              @unique
+  total       Decimal             @db.Decimal(10, 2)
+  notes       String?
+  receivedAt  DateTime?
+  status      PurchaseOrderStatus @default(DRAFT)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  items PurchaseOrderItem[]
+
+  @@index([supplierId])
+  @@index([orderNumber])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String  @id @default(cuid())
+  quantity         Int
+  quantityReceived Int     @default(0)
+  unitCost         Decimal @db.Decimal(10, 2)
+  total            Decimal @db.Decimal(10, 2)
+
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+  @@map("purchase_order_items")
+}
+
 model StoreSettings {
   id          String @id @default("singleton")
   name        String @default("BasicTechShop")
@@ -227,7 +404,7 @@ model StoreSettings {
   address     String @default("Av. Tecnologia 123, Lima")
   description String @default("Tu tienda de tecnologia de confianza")
   timezone    String @default("america-lima")
-  currency    String @default("pen")
+  currency    String @default("cop")
 
   showOutOfStock   Boolean @default(true)
   showStockCount   Boolean @default(true)

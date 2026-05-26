@@ -62,12 +62,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const customer = await prisma.customer.upsert({
+      where: { userId: session.user.id },
+      update: {},
+      create: {
+        name: session.user.name ?? session.user.email ?? "Cliente",
+        email: session.user.email,
+        source: "ONLINE",
+        userId: session.user.id,
+      },
+    })
+
     const order = await prisma.order.create({
       data: {
+        customerId: customer.id,
         userId: session.user.id,
         addressId,
         orderNumber: reference,
         status: "PENDING",
+        channel: "ONLINE",
         subtotal,
         shipping,
         total,

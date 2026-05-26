@@ -11,6 +11,10 @@ import {
   Tag,
   SlidersHorizontal,
   Store,
+  UserCheck,
+  Truck,
+  ShoppingBag,
+  Bookmark,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -19,7 +23,11 @@ const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Productos", href: "/admin/products", icon: Package },
   { name: "Categorías", href: "/admin/categories", icon: Tag },
+  { name: "Marcas", href: "/admin/brands", icon: Bookmark },
   { name: "Atributos", href: "/admin/attributes", icon: SlidersHorizontal },
+  { name: "Clientes", href: "/admin/customers", icon: UserCheck },
+  { name: "Proveedores", href: "/admin/suppliers", icon: Truck },
+  { name: "Compras", href: "/admin/purchase-orders", icon: ShoppingBag },
   { name: "Pagos", href: "/admin/payments", icon: CreditCard },
   { name: "Usuarios", href: "/admin/users", icon: Users },
   { name: "Configuracion", href: "/admin/settings", icon: Settings },

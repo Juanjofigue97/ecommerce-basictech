@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Product } from "@/types"
 import { useCartStore } from "@/stores/cart-store"
+import { useCurrency } from "@/hooks/use-currency"
 
 interface ProductCardProps {
   product: Product
@@ -18,6 +19,7 @@ const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1629429408209-1f912
 
 export function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem)
+  const formatPrice = useCurrency()
   const [added, setAdded] = useState(false)
 
   const hasDiscount = product.originalPrice && product.originalPrice > product.price
@@ -96,8 +98,19 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       <CardContent className="p-3 sm:p-4">
-        {/* Brand */}
-        <p className="text-xs text-muted-foreground">{product.brand}</p>
+        {/* Brand + single-attr inline */}
+        <p className="text-xs text-muted-foreground">
+          {product.brand}
+          {product.variantAttributeNames?.length === 1 && product.variants && product.variants.length > 0 && (() => {
+            const attrName = product.variantAttributeNames[0]
+            const distinctValues = [...new Set(
+              product.variants.flatMap((v) => v.values?.filter((vv) => vv.attrName === attrName).map((vv) => vv.value) ?? [])
+            )]
+            return distinctValues.length > 0
+              ? <span className="text-muted-foreground"> · {attrName}: {distinctValues.join(", ")}</span>
+              : null
+          })()}
+        </p>
 
         {/* Name */}
         <Link href={`/products/${product.slug}`}>
@@ -105,6 +118,56 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
+
+        {/* Variant table for 2+ attributes */}
+        {(product.variantAttributeNames?.length ?? 0) >= 2 && product.variants && product.variants.length > 0 && (
+          <div className="mt-2 overflow-hidden rounded border text-xs">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  {product.variantAttributeNames!.map((name) => (
+                    <th key={name} className="px-2 py-1 text-left font-semibold uppercase tracking-wide text-muted-foreground">
+                      {name}
+                    </th>
+                  ))}
+                  <th className="px-2 py-1 text-left font-semibold uppercase tracking-wide text-muted-foreground">
+                    Stock
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {product.variants.slice(0, 4).map((v) => (
+                  <tr key={v.id} className="border-b last:border-0">
+                    {product.variantAttributeNames!.map((attrName) => {
+                      const val = v.values?.find((vv) => vv.attrName === attrName)?.value ?? "—"
+                      return (
+                        <td key={attrName} className="px-2 py-1 font-medium uppercase">
+                          {val}
+                        </td>
+                      )
+                    })}
+                    <td className="px-2 py-1">
+                      <span className={`rounded px-1.5 py-0.5 font-semibold ${
+                        v.stock === 0
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      }`}>
+                        {v.stock === 0 ? "0" : v.stock > 15 ? "15+" : v.stock}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {product.variants.length > 4 && (
+                  <tr>
+                    <td colSpan={(product.variantAttributeNames?.length ?? 0) + 1} className="px-2 py-1 text-center text-muted-foreground">
+                      +{product.variants.length - 4} más
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Rating */}
         <div className="mt-2 flex items-center gap-1">
@@ -115,25 +178,27 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Price */}
         <div className="mt-2 flex items-baseline gap-2">
           <span className="text-lg font-bold text-primary">
-            S/ {product.price.toFixed(2)}
+            {formatPrice(product.price)}
           </span>
           {hasDiscount && (
             <span className="text-sm text-muted-foreground line-through">
-              S/ {product.originalPrice!.toFixed(2)}
+              {formatPrice(product.originalPrice!)}
             </span>
           )}
         </div>
 
-        {/* Stock */}
-        <p className="mt-1 text-xs text-muted-foreground">
-          {product.stock > 0 ? (
-            <span className="text-green-600 dark:text-green-400">
-              {product.stock} disponibles
-            </span>
-          ) : (
-            <span className="text-destructive">Agotado</span>
-          )}
-        </p>
+        {/* Stock — only for products without variants */}
+        {(!product.variants || product.variants.length === 0) && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {product.stock > 0 ? (
+              <span className="text-green-600 dark:text-green-400">
+                {product.stock} disponibles
+              </span>
+            ) : (
+              <span className="text-destructive">Agotado</span>
+            )}
+          </p>
+        )}
       </CardContent>
     </Card>
   )

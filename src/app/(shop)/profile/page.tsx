@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useCurrency } from "@/hooks/use-currency"
 import { Camera, Pencil } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -42,6 +43,7 @@ function ProfileSkeleton() {
 }
 
 export default function ProfilePage() {
+  const formatPrice = useCurrency()
   const { data: session, status } = useSession()
   const { orders, fetchOrders } = useUserStore()
 
@@ -119,7 +121,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Gastado</CardDescription>
-            <CardTitle className="text-2xl">S/ {stats.totalSpent.toFixed(2)}</CardTitle>
+            <CardTitle className="text-2xl">{formatPrice(stats.totalSpent)}</CardTitle>
           </CardHeader>
         </Card>
       </div>

@@ -15,10 +15,8 @@ export async function GET() {
       // Total products
       prisma.product.count(),
 
-      // Total customers (users with CUSTOMER role)
-      prisma.user.count({
-        where: { role: "CUSTOMER" },
-      }),
+      // Total customers (all registered customers)
+      prisma.customer.count(),
 
       // Total orders
       prisma.order.count(),
@@ -59,8 +57,8 @@ export async function GET() {
     const transformedRecentOrders = recentOrders.map((order) => ({
       id: order.id,
       orderNumber: order.orderNumber,
-      customer: order.user.name,
-      email: order.user.email,
+      customer: order.user?.name ?? "Cliente",
+      email: order.user?.email ?? "",
       total: Number(order.total),
       status: order.status.toLowerCase(),
       createdAt: order.createdAt.toISOString(),

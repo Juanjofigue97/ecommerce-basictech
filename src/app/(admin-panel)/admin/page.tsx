@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatsCard } from "@/components/admin/StatsCard"
 import { useAdminStore } from "@/stores/admin-store"
+import { useCurrency } from "@/hooks/use-currency"
 
 function DashboardSkeleton() {
   return (
@@ -84,6 +85,7 @@ const statusLabels: Record<string, string> = {
 
 export default function AdminDashboard() {
   const { stats, recentOrders, loading, fetchDashboard } = useAdminStore()
+  const formatPrice = useCurrency()
 
   useEffect(() => {
     fetchDashboard()
@@ -107,7 +109,7 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Ingresos Totales"
-          value={`S/ ${(stats?.totalRevenue || 0).toLocaleString()}`}
+          value={formatPrice(stats?.totalRevenue || 0)}
           change={0}
           icon={DollarSign}
         />
@@ -185,7 +187,7 @@ export default function AdminDashboard() {
                         {statusLabels[order.status] || order.status}
                       </Badge>
                       <span className="text-sm font-medium">
-                        S/ {order.total.toFixed(2)}
+                        {formatPrice(order.total)}
                       </span>
                     </div>
                   </div>

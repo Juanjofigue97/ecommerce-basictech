@@ -10,7 +10,6 @@ interface ProductsState {
   loading: boolean
   error: string | null
 
-  // Actions
   fetchProducts: (filters?: Partial<FilterState>) => Promise<void>
   fetchFeaturedProducts: () => Promise<void>
   fetchCategories: () => Promise<void>
@@ -22,8 +21,9 @@ interface ProductsState {
 const defaultFilters: FilterState = {
   categories: [],
   brands: [],
-  priceRange: [0, 10000],
+  priceRange: [0, 5_000_000],
   sortBy: "newest",
+  attributeValues: {},
 }
 
 export const useProductsStore = create<ProductsState>((set, get) => ({
@@ -41,20 +41,18 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
       const filters = { ...get().filters, ...filterOverrides }
       const params = new URLSearchParams()
 
-      if (filters.categories.length === 1) {
-        params.set("category", filters.categories[0])
-      }
-      if (filters.brands.length === 1) {
-        params.set("brand", filters.brands[0])
-      }
-      if (filters.priceRange[0] > 0) {
-        params.set("minPrice", filters.priceRange[0].toString())
-      }
-      if (filters.priceRange[1] < 10000) {
-        params.set("maxPrice", filters.priceRange[1].toString())
-      }
-      if (filters.sortBy) {
-        params.set("sortBy", filters.sortBy)
+      if (filters.categories.length === 1) params.set("category", filters.categories[0])
+      if (filters.brands.length === 1) params.set("brand", filters.brands[0])
+      if (filters.priceRange[0] > 0) params.set("minPrice", filters.priceRange[0].toString())
+      if (filters.priceRange[1] < 10000) params.set("maxPrice", filters.priceRange[1].toString())
+      if (filters.sortBy) params.set("sortBy", filters.sortBy)
+
+      // Pass selected attribute value IDs grouped by attribute
+      // Format: avGroup=attrId:valueId1,valueId2 (one param per attribute)
+      for (const [attrId, valueIds] of Object.entries(filters.attributeValues)) {
+        if (valueIds.length > 0) {
+          params.append("avGroup", `${attrId}:${valueIds.join(",")}`)
+        }
       }
 
       const response = await fetch(`/api/products?${params.toString()}`)
@@ -71,7 +69,6 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
     try {
       const response = await fetch("/api/products?featured=true&limit=8")
       if (!response.ok) throw new Error("Failed to fetch featured products")
-
       const data = await response.json()
       set({ featuredProducts: data.products })
     } catch (error) {
@@ -83,9 +80,8 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
     try {
       const response = await fetch("/api/categories")
       if (!response.ok) throw new Error("Failed to fetch categories")
-
       const categories = await response.json()
-      set({ categories })
+      set({ categories: Array.isArray(categories) ? categories : [] })
     } catch (error) {
       console.error("Error fetching categories:", error)
     }
@@ -95,9 +91,8 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
     try {
       const response = await fetch("/api/brands")
       if (!response.ok) throw new Error("Failed to fetch brands")
-
       const brands = await response.json()
-      set({ brands })
+      set({ brands: Array.isArray(brands) ? brands : [] })
     } catch (error) {
       console.error("Error fetching brands:", error)
     }

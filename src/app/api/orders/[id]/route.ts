@@ -38,8 +38,8 @@ export async function GET(
       id: order.id,
       orderNumber: order.orderNumber,
       customer: {
-        name: order.user.name,
-        email: order.user.email,
+        name: order.user?.name ?? "Cliente",
+        email: order.user?.email ?? "",
       },
       status: order.status.toLowerCase(),
       subtotal: Number(order.subtotal),
@@ -47,14 +47,14 @@ export async function GET(
       total: Number(order.total),
       paymentMethod: order.paymentMethod,
       notes: order.notes,
-      shippingAddress: {
+      shippingAddress: order.address ? {
         name: order.address.name,
         phone: order.address.phone,
         address: order.address.address,
         city: order.address.city,
         state: order.address.state,
         zipCode: order.address.zipCode,
-      },
+      } : null,
       items: order.items.map((item) => ({
         productId: item.productId,
         slug: item.product.slug,

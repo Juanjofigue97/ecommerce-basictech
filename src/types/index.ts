@@ -1,3 +1,10 @@
+export interface ProductVariantItem {
+  id: string
+  label: string | null
+  stock: number
+  values?: { attrName: string; value: string }[]
+}
+
 export interface Product {
   id: string
   name: string
@@ -13,6 +20,8 @@ export interface Product {
   isNew: boolean
   isFeatured: boolean
   rating: number
+  variants?: ProductVariantItem[]
+  variantAttributeNames?: string[]
 }
 
 export interface Category {
@@ -33,6 +42,9 @@ export interface Brand {
 export interface CartItem {
   product: Product
   quantity: number
+  variantId?: string
+  variantLabel?: string
+  variantPrice?: number
 }
 
 export interface FilterState {
@@ -40,4 +52,6 @@ export interface FilterState {
   brands: string[]
   priceRange: [number, number]
   sortBy: 'popular' | 'price-asc' | 'price-desc' | 'newest' | 'rating'
+  // attributeId -> selected valueIds (AND between attributes, OR within)
+  attributeValues: Record<string, string[]>
 }

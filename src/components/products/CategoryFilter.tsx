@@ -4,24 +4,22 @@ import { useState } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { categories } from "@/data/mock-products"
+import { Category } from "@/types"
 
 interface CategoryFilterProps {
+  categories: Category[]
   selectedCategories: string[]
   onCategoriesChange: (categories: string[]) => void
 }
 
-export function CategoryFilter({
-  selectedCategories,
-  onCategoriesChange,
-}: CategoryFilterProps) {
+export function CategoryFilter({ categories, selectedCategories, onCategoriesChange }: CategoryFilterProps) {
   const [isOpen, setIsOpen] = useState(true)
 
-  const handleCategoryToggle = (categorySlug: string) => {
-    if (selectedCategories.includes(categorySlug)) {
-      onCategoriesChange(selectedCategories.filter((c) => c !== categorySlug))
+  function toggle(slug: string) {
+    if (selectedCategories.includes(slug)) {
+      onCategoriesChange(selectedCategories.filter((c) => c !== slug))
     } else {
-      onCategoriesChange([...selectedCategories, categorySlug])
+      onCategoriesChange([...selectedCategories, slug])
     }
   }
 
@@ -31,31 +29,25 @@ export function CategoryFilter({
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between py-2 font-medium"
       >
-        Categoria
-        {isOpen ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
+        Categoría
+        {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
 
       {isOpen && (
         <div className="mt-2 space-y-2">
-          {categories.map((category) => (
-            <div key={category.id} className="flex items-center space-x-2">
+          {categories.map((cat) => (
+            <div key={cat.id} className="flex items-center space-x-2">
               <Checkbox
-                id={`category-${category.id}`}
-                checked={selectedCategories.includes(category.slug)}
-                onCheckedChange={() => handleCategoryToggle(category.slug)}
+                id={`cat-${cat.id}`}
+                checked={selectedCategories.includes(cat.slug)}
+                onCheckedChange={() => toggle(cat.slug)}
               />
               <Label
-                htmlFor={`category-${category.id}`}
-                className="flex flex-1 cursor-pointer items-center justify-between text-sm"
+                htmlFor={`cat-${cat.id}`}
+                className="flex flex-1 cursor-pointer items-center justify-between text-sm font-normal"
               >
-                <span>{category.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {category.productCount}
-                </span>
+                <span>{cat.name}</span>
+                <span className="text-xs text-muted-foreground">{cat.productCount}</span>
               </Label>
             </div>
           ))}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useCurrency } from "@/hooks/use-currency"
 import Link from "next/link"
 import Image from "next/image"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Loader2 } from "lucide-react"
@@ -42,6 +43,12 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+interface Variant {
+  id: string
+  label: string | null
+  stock: number
+}
+
 interface Product {
   id: string
   name: string
@@ -54,6 +61,7 @@ interface Product {
   images: string[]
   isNew: boolean
   isFeatured: boolean
+  variants?: Variant[]
 }
 
 interface Category {
@@ -97,6 +105,7 @@ function ProductsSkeleton() {
 }
 
 export default function AdminProductsPage() {
+  const formatPrice = useCurrency()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -292,13 +301,40 @@ export default function AdminProductsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="capitalize">{product.category}</TableCell>
-                      <TableCell>S/ {product.price.toFixed(2)}</TableCell>
-                      <TableCell>{product.stock}</TableCell>
+                      <TableCell>{formatPrice(product.price)}</TableCell>
                       <TableCell>
-                        {product.stock > 0 ? (
-                          <Badge variant="default" className="bg-green-600">
-                            En stock
-                          </Badge>
+                        {product.variants && product.variants.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {product.variants.map((v) => (
+                              <span
+                                key={v.id}
+                                className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
+                                  v.stock > 0
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                    : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                }`}
+                              >
+                                {v.label ?? "—"}: {v.stock}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className={product.stock > 0 ? "font-medium" : "text-destructive font-medium"}>
+                            {product.stock}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {product.variants && product.variants.length > 0 ? (
+                          product.variants.every((v) => v.stock === 0) ? (
+                            <Badge variant="destructive">Agotado</Badge>
+                          ) : product.variants.some((v) => v.stock === 0) ? (
+                            <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">Parcial</Badge>
+                          ) : (
+                            <Badge className="bg-green-600 text-white">En stock</Badge>
+                          )
+                        ) : product.stock > 0 ? (
+                          <Badge className="bg-green-600 text-white">En stock</Badge>
                         ) : (
                           <Badge variant="destructive">Agotado</Badge>
                         )}
@@ -312,9 +348,9 @@ export default function AdminProductsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link href={`/products/${product.slug}`}>
+                              <Link href={`/admin/products/${product.id}`}>
                                 <Eye className="mr-2 h-4 w-4" />
-                                Ver
+                                Ver detalle
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>

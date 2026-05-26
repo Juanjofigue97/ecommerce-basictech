@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import Image from "next/image"
+import { useCurrency } from "@/hooks/use-currency"
 import Link from "next/link"
 import { Package, Eye, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -49,6 +50,7 @@ function OrdersSkeleton() {
 }
 
 export default function OrdersPage() {
+  const formatPrice = useCurrency()
   const { orders, loading, fetchOrders } = useUserStore()
 
   useEffect(() => {
@@ -130,7 +132,7 @@ export default function OrdersPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{item.name}</p>
                           <p className="text-sm">
-                            S/ {item.price.toFixed(2)} x {item.quantity}
+                            {formatPrice(item.price)} x {item.quantity}
                           </p>
                         </div>
                       </div>
@@ -153,7 +155,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="flex items-center gap-4">
                       <p className="font-semibold">
-                        Total: S/ {order.total.toFixed(2)}
+                        Total: {formatPrice(order.total)}
                       </p>
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/profile/orders/${order.id}`}>
