@@ -15,6 +15,10 @@ import {
   Truck,
   ShoppingBag,
   Bookmark,
+  Monitor,
+  CalendarClock,
+  ArrowLeftRight,
+  Receipt,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,6 +32,10 @@ const navigation = [
   { name: "Clientes", href: "/admin/customers", icon: UserCheck },
   { name: "Proveedores", href: "/admin/suppliers", icon: Truck },
   { name: "Compras", href: "/admin/purchase-orders", icon: ShoppingBag },
+  { name: "POS", href: "/admin/pos", icon: Receipt },
+  { name: "Terminales", href: "/admin/terminals", icon: Monitor },
+  { name: "Sesiones", href: "/admin/cash-sessions", icon: CalendarClock },
+  { name: "Movimientos", href: "/admin/cash-movements", icon: ArrowLeftRight },
   { name: "Pagos", href: "/admin/payments", icon: CreditCard },
   { name: "Usuarios", href: "/admin/users", icon: Users },
   { name: "Configuracion", href: "/admin/settings", icon: Settings },
