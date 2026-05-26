@@ -107,7 +107,8 @@ model Product {
   brandId String
   brand   Brand @relation(fields: [brandId], references: [id])
 
-  orderItems OrderItem[]
+  orderItems  OrderItem[]
+  attributes  ProductAttribute[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -178,4 +179,73 @@ model OrderItem {
 
   @@index([orderId])
   @@map("order_items")
+}
+
+model Attribute {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  values AttributeValue[]
+
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id          String @id @default(cuid())
+  value       String
+  slug        String
+
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  products ProductAttribute[]
+
+  @@unique([attributeId, slug])
+  @@index([attributeId])
+  @@map("attribute_values")
+}
+
+model ProductAttribute {
+  productId        String
+  attributeValueId String
+
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attributeValue AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@id([productId, attributeValueId])
+  @@map("product_attributes")
+}
+
+model StoreSettings {
+  id          String @id @default("singleton")
+  name        String @default("BasicTechShop")
+  email       String @default("info@basictechshop.com")
+  phone       String @default("+51 999 888 777")
+  address     String @default("Av. Tecnologia 123, Lima")
+  description String @default("Tu tienda de tecnologia de confianza")
+  timezone    String @default("america-lima")
+  currency    String @default("pen")
+
+  showOutOfStock   Boolean @default(true)
+  showStockCount   Boolean @default(true)
+  allowReviews     Boolean @default(true)
+  shippingCost     Decimal @default(15) @db.Decimal(10, 2)
+  freeShippingFrom Decimal @default(200) @db.Decimal(10, 2)
+
+  notifyNewOrders      Boolean @default(true)
+  notifyFailedPayments Boolean @default(true)
+  notifyLowStock       Boolean @default(true)
+  notifyNewUsers       Boolean @default(false)
+
+  enableCards          Boolean @default(true)
+  enableTransfer       Boolean @default(true)
+  enableWallets        Boolean @default(true)
+  enableCashOnDelivery Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("store_settings")
 }

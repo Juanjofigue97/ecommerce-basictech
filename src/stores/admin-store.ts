@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { useShallow } from "zustand/react/shallow"
 
 interface DashboardStats {
   totalProducts: number
@@ -68,6 +69,31 @@ interface AdminUser {
   totalSpent: number
 }
 
+export interface StoreSettings {
+  id: string
+  name: string
+  email: string
+  phone: string
+  address: string
+  description: string
+  timezone: string
+  currency: string
+  showOutOfStock: boolean
+  showStockCount: boolean
+  allowReviews: boolean
+  shippingCost: number
+  freeShippingFrom: number
+  notifyNewOrders: boolean
+  notifyFailedPayments: boolean
+  notifyLowStock: boolean
+  notifyNewUsers: boolean
+  enableCards: boolean
+  enableTransfer: boolean
+  enableWallets: boolean
+  enableCashOnDelivery: boolean
+  updatedAt: string
+}
+
 interface AdminState {
   // Dashboard
   stats: DashboardStats | null
@@ -81,6 +107,10 @@ interface AdminState {
   // Users
   users: AdminUser[]
 
+  // Settings
+  settings: StoreSettings | null
+  settingsSaving: boolean
+
   loading: boolean
   error: string | null
 
@@ -89,6 +119,8 @@ interface AdminState {
   fetchOrders: (params?: { status?: string; limit?: number; offset?: number }) => Promise<void>
   fetchUsers: (params?: { role?: string; status?: string }) => Promise<void>
   updateOrderStatus: (id: string, status: string) => Promise<void>
+  fetchSettings: () => Promise<void>
+  saveSettings: (data: Partial<StoreSettings>) => Promise<void>
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
@@ -98,6 +130,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   orders: [],
   ordersTotal: 0,
   users: [],
+  settings: null,
+  settingsSaving: false,
   loading: false,
   error: null,
 
@@ -165,10 +199,38 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       })
       if (!response.ok) throw new Error("Error updating order")
 
-      // Refresh orders after update
       await get().fetchOrders()
     } catch (error) {
       set({ error: (error as Error).message, loading: false })
+      throw error
+    }
+  },
+
+  fetchSettings: async () => {
+    set({ loading: true, error: null })
+    try {
+      const response = await fetch("/api/admin/settings")
+      if (!response.ok) throw new Error("Error fetching settings")
+      const settings = await response.json()
+      set({ settings, loading: false })
+    } catch (error) {
+      set({ error: (error as Error).message, loading: false })
+    }
+  },
+
+  saveSettings: async (data) => {
+    set({ settingsSaving: true, error: null })
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) throw new Error("Error saving settings")
+      const settings = await response.json()
+      set({ settings, settingsSaving: false })
+    } catch (error) {
+      set({ error: (error as Error).message, settingsSaving: false })
       throw error
     }
   },
