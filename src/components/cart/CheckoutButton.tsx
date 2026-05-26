@@ -7,14 +7,13 @@ import { Loader2, CreditCard, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/stores/cart-store"
 
-export function StripeCheckoutButton() {
+export function CheckoutButton() {
   const [loading, setLoading] = useState(false)
   const items = useCartStore((state) => state.items)
   const { data: session, status } = useSession()
   const router = useRouter()
 
   const handleCheckout = async () => {
-    // Check if user is authenticated
     if (!session) {
       router.push("/login?callbackUrl=/cart")
       return
@@ -34,20 +33,18 @@ export function StripeCheckoutButton() {
             quantity: item.quantity,
             image: item.product.images?.[0],
           })),
-          customerEmail: session.user?.email,
         }),
       })
 
       const data = await response.json()
 
       if (data.url) {
-        // Redirect to Stripe Checkout
         window.location.href = data.url
       } else {
-        throw new Error("No checkout URL returned")
+        throw new Error(data.error ?? "No checkout URL returned")
       }
     } catch (error) {
-      console.error("Error creating checkout session:", error)
+      console.error("Error creating checkout:", error)
       alert("Error al procesar el pago. Intenta nuevamente.")
     } finally {
       setLoading(false)
@@ -76,7 +73,7 @@ export function StripeCheckoutButton() {
       ) : (
         <>
           <CreditCard className="mr-2 h-4 w-4" />
-          Pagar con Stripe
+          Pagar con Wompi
         </>
       )}
     </Button>

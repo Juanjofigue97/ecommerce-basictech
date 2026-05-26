@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { stripe } from "@/lib/stripe"
 import { auth } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { paymentService } from "@/services/payment"
 
 interface CartItem {
   id: string
@@ -12,14 +13,14 @@ interface CartItem {
 
 interface CheckoutBody {
   items: CartItem[]
-  customerEmail?: string
   shippingAddressId?: string
-  metadata?: Record<string, string>
 }
+
+const FREE_SHIPPING_THRESHOLD = 200_000
+const STANDARD_SHIPPING = 15_000
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify user is authenticated
     const session = await auth()
 
     if (!session?.user) {
@@ -30,124 +31,75 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CheckoutBody = await request.json()
-    const { items, metadata } = body
+    const { items, shippingAddressId } = body
 
     if (!items || items.length === 0) {
+      return NextResponse.json({ error: "No hay productos en el carrito" }, { status: 400 })
+    }
+
+    const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0)
+    const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING
+    const total = subtotal + shipping
+    const amountInCents = Math.round(total * 100)
+
+    const reference = `BT-${Date.now()}`
+
+    const productIds = items.map((i) => i.id)
+    const products = await prisma.product.findMany({ where: { id: { in: productIds } } })
+
+    let addressId = shippingAddressId
+    if (!addressId) {
+      const defaultAddress = await prisma.address.findFirst({
+        where: { userId: session.user.id, isDefault: true },
+      })
+      addressId = defaultAddress?.id
+    }
+
+    if (!addressId) {
       return NextResponse.json(
-        { error: "No items in cart" },
+        { error: "Se requiere una dirección de envío" },
         { status: 400 }
       )
     }
 
-    // Create line items for Stripe
-    const lineItems = items.map((item) => ({
-      price_data: {
-        currency: "pen", // Peruvian Sol
-        product_data: {
-          name: item.name,
-          images: item.image ? [item.image] : [],
-        },
-        unit_amount: Math.round(item.price * 100), // Stripe uses cents
-      },
-      quantity: item.quantity,
-    }))
-
-    // Calculate subtotal for free shipping check
-    const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0)
-    const qualifiesForFreeShipping = subtotal >= 200
-
-    // Build shipping options based on subtotal
-    const shippingOptions = qualifiesForFreeShipping
-      ? [
-          {
-            shipping_rate_data: {
-              type: "fixed_amount" as const,
-              fixed_amount: {
-                amount: 0,
-                currency: "pen",
-              },
-              display_name: "Envio gratis",
-              delivery_estimate: {
-                minimum: { unit: "business_day" as const, value: 3 },
-                maximum: { unit: "business_day" as const, value: 5 },
-              },
-            },
-          },
-          {
-            shipping_rate_data: {
-              type: "fixed_amount" as const,
-              fixed_amount: {
-                amount: 1500, // S/ 15.00
-                currency: "pen",
-              },
-              display_name: "Envio express",
-              delivery_estimate: {
-                minimum: { unit: "business_day" as const, value: 1 },
-                maximum: { unit: "business_day" as const, value: 2 },
-              },
-            },
-          },
-        ]
-      : [
-          {
-            shipping_rate_data: {
-              type: "fixed_amount" as const,
-              fixed_amount: {
-                amount: 1500, // S/ 15.00
-                currency: "pen",
-              },
-              display_name: "Envio estandar",
-              delivery_estimate: {
-                minimum: { unit: "business_day" as const, value: 3 },
-                maximum: { unit: "business_day" as const, value: 5 },
-              },
-            },
-          },
-          {
-            shipping_rate_data: {
-              type: "fixed_amount" as const,
-              fixed_amount: {
-                amount: 3000, // S/ 30.00
-                currency: "pen",
-              },
-              display_name: "Envio express",
-              delivery_estimate: {
-                minimum: { unit: "business_day" as const, value: 1 },
-                maximum: { unit: "business_day" as const, value: 2 },
-              },
-            },
-          },
-        ]
-
-    // Create Stripe checkout session
-    const stripeSession = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: lineItems,
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/cancel`,
-      customer_email: session.user.email || undefined,
-      metadata: {
-        ...metadata,
+    const order = await prisma.order.create({
+      data: {
         userId: session.user.id,
-        items: JSON.stringify(items.map((i) => ({ id: i.id, qty: i.quantity }))),
-      },
-      shipping_options: shippingOptions,
-      billing_address_collection: "required",
-      shipping_address_collection: {
-        allowed_countries: ["PE"],
+        addressId,
+        orderNumber: reference,
+        status: "PENDING",
+        subtotal,
+        shipping,
+        total,
+        paymentMethod: "Wompi",
+        paymentSessionId: reference,
+        items: {
+          create: items.map((item) => {
+            const product = products.find((p) => p.id === item.id)
+            return {
+              productId: item.id,
+              name: product?.name ?? item.name,
+              price: item.price,
+              quantity: item.quantity,
+              total: item.price * item.quantity,
+            }
+          }),
+        },
       },
     })
 
-    return NextResponse.json({
-      sessionId: stripeSession.id,
-      url: stripeSession.url
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    const { url } = await paymentService.createCheckout({
+      reference,
+      amountInCents,
+      currency: "COP",
+      customerEmail: session.user.email!,
+      redirectUrl: `${appUrl}/checkout/success?reference=${reference}`,
     })
+
+    return NextResponse.json({ url, orderId: order.id })
   } catch (error) {
-    console.error("Error creating checkout session:", error)
-    return NextResponse.json(
-      { error: "Error creating checkout session" },
-      { status: 500 }
-    )
+    console.error("Error creating checkout:", error)
+    return NextResponse.json({ error: "Error al procesar el checkout" }, { status: 500 })
   }
 }

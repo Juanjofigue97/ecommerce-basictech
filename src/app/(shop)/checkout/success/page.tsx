@@ -10,7 +10,7 @@ import { useCartStore } from "@/stores/cart-store"
 
 function SuccessContent() {
   const searchParams = useSearchParams()
-  const sessionId = searchParams.get("session_id")
+  const sessionId = searchParams.get("reference")
   const clearCart = useCartStore((state) => state.clearCart)
 
   useEffect(() => {
