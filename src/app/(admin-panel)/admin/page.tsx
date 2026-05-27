@@ -2,7 +2,8 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
-import { DollarSign, ShoppingCart, Users, Package, ArrowUpRight } from "lucide-react"
+import Image from "next/image"
+import { DollarSign, ShoppingCart, Users, Package, ArrowUpRight, TrendingUp, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -84,7 +85,7 @@ const statusLabels: Record<string, string> = {
 }
 
 export default function AdminDashboard() {
-  const { stats, recentOrders, loading, fetchDashboard } = useAdminStore()
+  const { stats, recentOrders, topOrderedProducts, outOfStockProducts, loading, fetchDashboard } = useAdminStore()
   const formatPrice = useCurrency()
 
   useEffect(() => {
@@ -226,6 +227,104 @@ export default function AdminDashboard() {
                 <Badge variant="destructive">{useAdminStore.getState().ordersByStatus?.cancelled || 0}</Badge>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Products insights */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Top ordered products */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Productos más pedidos
+              </CardTitle>
+              <CardDescription>Top 5 por unidades vendidas</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/products">
+                Ver todos
+                <ArrowUpRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {topOrderedProducts.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">Sin datos</p>
+            ) : (
+              <div className="space-y-3">
+                {topOrderedProducts.map((product, index) => (
+                  <div key={product.id} className="flex items-center gap-3">
+                    <span className="w-5 text-center text-sm font-bold text-muted-foreground">
+                      {index + 1}
+                    </span>
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        width={36}
+                        height={36}
+                        className="rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded bg-muted">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <span className="flex-1 truncate text-sm font-medium">{product.name}</span>
+                    <Badge variant="secondary">{product.totalOrdered} uds.</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Out of stock products */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                Sin stock
+              </CardTitle>
+              <CardDescription>Productos que necesitan reposición</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/products">
+                Gestionar
+                <ArrowUpRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {outOfStockProducts.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">Todos los productos tienen stock</p>
+            ) : (
+              <div className="space-y-3">
+                {outOfStockProducts.map((product) => (
+                  <div key={product.id} className="flex items-center gap-3">
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        width={36}
+                        height={36}
+                        className="rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded bg-muted">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <span className="flex-1 truncate text-sm font-medium">{product.name}</span>
+                    <Badge variant="destructive">Sin stock</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

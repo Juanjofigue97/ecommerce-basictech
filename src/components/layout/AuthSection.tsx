@@ -85,7 +85,7 @@ export function AuthSection() {
   return (
     <div className="hidden items-center gap-2 sm:flex">
       <Link href="/login">
-        <Button variant="ghost" size="sm">
+        <Button variant="outline" size="sm">
           Ingresar
         </Button>
       </Link>

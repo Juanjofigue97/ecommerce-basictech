@@ -95,11 +95,26 @@ export interface StoreSettings {
   updatedAt: string
 }
 
+interface TopProduct {
+  id: string
+  name: string
+  image: string | null
+  totalOrdered: number
+}
+
+interface OutOfStockProduct {
+  id: string
+  name: string
+  image: string | null
+}
+
 interface AdminState {
   // Dashboard
   stats: DashboardStats | null
   ordersByStatus: OrdersByStatus | null
   recentOrders: RecentOrder[]
+  topOrderedProducts: TopProduct[]
+  outOfStockProducts: OutOfStockProduct[]
 
   // Orders
   orders: AdminOrder[]
@@ -128,6 +143,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   stats: null,
   ordersByStatus: null,
   recentOrders: [],
+  topOrderedProducts: [],
+  outOfStockProducts: [],
   orders: [],
   ordersTotal: 0,
   users: [],
@@ -146,6 +163,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         stats: data.stats,
         ordersByStatus: data.ordersByStatus,
         recentOrders: data.recentOrders,
+        topOrderedProducts: data.topOrderedProducts ?? [],
+        outOfStockProducts: data.outOfStockProducts ?? [],
         loading: false,
       })
     } catch (error) {

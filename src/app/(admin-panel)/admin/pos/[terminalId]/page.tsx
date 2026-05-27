@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Search, ArrowLeft, UserRound, Minus, Plus, Trash2, X, Loader2, Wallet } from "lucide-react"
+import Image from "next/image"
+import { Search, ArrowLeft, UserRound, Minus, Plus, Trash2, X, Loader2, Wallet, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +11,7 @@ import { usePOSStore } from "@/stores/pos-store"
 import { CustomerModal } from "@/components/pos/CustomerModal"
 import { PaymentModal } from "@/components/pos/PaymentModal"
 import { VariantSelectorModal } from "@/components/pos/VariantSelectorModal"
+import { ReceiptModal, type ReceiptData } from "@/components/pos/ReceiptModal"
 import type { Product } from "@/types"
 
 interface Category {
@@ -52,6 +54,7 @@ export default function POSPage() {
   const [showPayment, setShowPayment] = useState(false)
   const [variantProduct, setVariantProduct] = useState<Product | null>(null)
   const [checkoutError, setCheckoutError] = useState("")
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null)
   const [, setDefaultCustomerId] = useState("")
   const [expectedCash, setExpectedCash] = useState<number | null>(null)
 
@@ -136,6 +139,8 @@ export default function POSPage() {
     if (!session || !sessionId) throw new Error("Sin sesión activa")
     if (!customerId) throw new Error("Selecciona un cliente")
 
+    const cartSnapshot = [...items]
+
     const res = await fetch("/api/pos/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -143,7 +148,7 @@ export default function POSPage() {
         terminalId,
         sessionId,
         customerId,
-        items: items.map((i) => ({
+        items: cartSnapshot.map((i) => ({
           productId: i.productId,
           variantId: i.variantId,
           name: i.name,
@@ -164,9 +169,31 @@ export default function POSPage() {
       throw new Error(data.error ?? "Error al procesar la venta")
     }
 
+    const { orderNumber } = await res.json()
+
     clearCart()
     fetchProducts()
     if (sessionId) refreshSessionBalance(sessionId)
+
+    setReceipt({
+      orderNumber,
+      date: new Date().toISOString(),
+      customerName: customerName ?? "Cliente",
+      items: cartSnapshot.map((i) => ({
+        name: i.name,
+        variantLabel: i.variantLabel,
+        quantity: i.quantity,
+        price: i.price,
+      })),
+      subtotal,
+      tip: paymentData.tip,
+      total: paymentData.total,
+      paymentMethod: paymentData.paymentMethod,
+      receivedAmount: paymentData.receivedAmount,
+      change: paymentData.receivedAmount != null ? paymentData.receivedAmount - paymentData.total : undefined,
+      terminal: session.terminal.name,
+      cashier: session.user.name,
+    })
   }
 
   if (sessionError) {
@@ -300,20 +327,33 @@ export default function POSPage() {
                           : "bg-card hover:border-primary hover:shadow-sm cursor-pointer"
                       }`}
                     >
-                      {outOfStock && (
-                        <Badge variant="destructive" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0">
-                          Sin stock
-                        </Badge>
-                      )}
-                      {hasVariants && !outOfStock && (
-                        <Badge variant="secondary" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0">
-                          Tallas
-                        </Badge>
-                      )}
-                      <span className="text-xs text-primary font-mono leading-tight truncate w-full">
-                        {product.slug}
-                      </span>
-                      <span className="font-medium leading-tight mt-0.5 line-clamp-2 text-xs">
+                      {/* Image */}
+                      <div className="relative w-full aspect-square rounded overflow-hidden bg-muted mb-1.5">
+                        {product.images?.[0] ? (
+                          <Image
+                            src={product.images[0]}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                            sizes="130px"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <Package className="h-6 w-6 text-muted-foreground/40" />
+                          </div>
+                        )}
+                        {outOfStock && (
+                          <Badge variant="destructive" className="absolute top-1 right-1 text-[10px] px-1.5 py-0">
+                            Sin stock
+                          </Badge>
+                        )}
+                        {hasVariants && !outOfStock && (
+                          <Badge variant="secondary" className="absolute top-1 right-1 text-[10px] px-1.5 py-0">
+                            Tallas
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="font-medium leading-tight line-clamp-2 text-xs">
                         {product.name}
                       </span>
                       <span className="mt-1 text-xs text-muted-foreground font-medium">
@@ -447,6 +487,14 @@ export default function POSPage() {
         subtotal={subtotal}
         onConfirm={handleCheckout}
       />
+
+      {receipt && (
+        <ReceiptModal
+          open={!!receipt}
+          onClose={() => setReceipt(null)}
+          data={receipt}
+        />
+      )}
 
       {variantProduct && (
         <VariantSelectorModal

@@ -11,40 +11,64 @@ export async function GET() {
       revenueData,
       recentOrders,
       ordersByStatus,
+      topOrderedRaw,
+      outOfStockProducts,
     ] = await Promise.all([
-      // Total products
       prisma.product.count(),
-
-      // Total customers (all registered customers)
       prisma.customer.count(),
-
-      // Total orders
       prisma.order.count(),
+      prisma.order.aggregate({ _sum: { total: true } }),
 
-      // Total revenue (sum of all order totals)
-      prisma.order.aggregate({
-        _sum: { total: true },
-      }),
-
-      // Recent orders (last 5)
       prisma.order.findMany({
         take: 5,
         orderBy: { createdAt: "desc" },
-        include: {
-          user: {
-            select: { name: true, email: true },
-          },
-        },
+        include: { user: { select: { name: true, email: true } } },
       }),
 
-      // Orders by status
-      prisma.order.groupBy({
-        by: ["status"],
-        _count: true,
+      prisma.order.groupBy({ by: ["status"], _count: true }),
+
+      // Top 5 productos más pedidos por cantidad total
+      prisma.orderItem.groupBy({
+        by: ["productId"],
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: "desc" } },
+        take: 5,
+      }),
+
+      // Top 5 productos sin stock
+      prisma.product.findMany({
+        where: { stock: 0 },
+        take: 5,
+        orderBy: { name: "asc" },
+        select: { id: true, name: true, stock: true, images: true },
       }),
     ])
 
-    // Transform orders by status to object
+    // Resolve product names for top ordered
+    const topProductIds = topOrderedRaw
+      .filter((r) => r.productId !== null)
+      .map((r) => r.productId as string)
+
+    const topProductDetails = await prisma.product.findMany({
+      where: { id: { in: topProductIds } },
+      select: { id: true, name: true, images: true },
+    })
+
+    const productMap = new Map(topProductDetails.map((p) => [p.id, p]))
+
+    const topOrderedProducts = topOrderedRaw
+      .filter((r) => r.productId !== null)
+      .map((r) => {
+        const product = productMap.get(r.productId as string)
+        return {
+          id: r.productId as string,
+          name: product?.name ?? "Producto eliminado",
+          image: product?.images?.[0] ?? null,
+          totalOrdered: r._sum.quantity ?? 0,
+        }
+      })
+
+    // Transform orders by status
     const statusCounts = ordersByStatus.reduce(
       (acc, item) => {
         acc[item.status.toLowerCase()] = item._count
@@ -79,6 +103,12 @@ export async function GET() {
         cancelled: statusCounts.cancelled || 0,
       },
       recentOrders: transformedRecentOrders,
+      topOrderedProducts,
+      outOfStockProducts: outOfStockProducts.map((p) => ({
+        id: p.id,
+        name: p.name,
+        image: p.images?.[0] ?? null,
+      })),
     })
   } catch (error) {
     console.error("Error fetching dashboard stats:", error)

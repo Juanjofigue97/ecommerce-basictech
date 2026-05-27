@@ -72,7 +72,7 @@ export function HeroBannerCarousel({ slides }: HeroBannerCarouselProps) {
                         )}
                       </h2>
                       {slide.description && (
-                        <p className="mt-3 text-sm sm:text-base text-slate-300 max-w-md mx-auto lg:mx-0">
+                        <p className="mt-3 text-sm sm:text-base text-white/70 max-w-md mx-auto lg:mx-0">
                           {slide.description}
                         </p>
                       )}
@@ -80,7 +80,7 @@ export function HeroBannerCarousel({ slides }: HeroBannerCarouselProps) {
                         <Button asChild size="default">
                           <Link href={slide.ctaHref}>{slide.ctaText}</Link>
                         </Button>
-                        <Button asChild variant="outline" className="border-slate-600 text-white hover:bg-slate-800">
+                        <Button asChild variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
                           <Link href="/products">Ver Todo</Link>
                         </Button>
                       </div>

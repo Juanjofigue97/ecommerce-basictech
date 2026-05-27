@@ -20,7 +20,12 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
-export function LoginForm() {
+interface LoginFormProps {
+  storeName?: string
+  storeDescription?: string
+}
+
+export function LoginForm({ storeName = "Mi Tienda", storeDescription }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/"
@@ -55,11 +60,17 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md px-4">
+      <div className="mb-6 text-center">
+        <span className="text-3xl font-black tracking-tight text-primary">{storeName}</span>
+        {storeDescription && (
+          <p className="mt-1 text-sm text-muted-foreground">{storeDescription}</p>
+        )}
+      </div>
       <Card>
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Iniciar Sesión</CardTitle>
+          <CardTitle className="text-xl font-bold">Bienvenido de vuelta</CardTitle>
           <CardDescription>
-            Ingresa tus credenciales para acceder a tu cuenta
+            Ingresá tu email y contraseña para continuar
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>

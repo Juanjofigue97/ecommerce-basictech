@@ -20,7 +20,7 @@ interface PaymentsState {
   payments: AdminPayment[]
   total: number
   loading: boolean
-  fetchPayments: (filters?: { method?: string; sessionId?: string }) => Promise<void>
+  fetchPayments: (filters?: { method?: string; sessionId?: string; from?: string; to?: string }) => Promise<void>
 }
 
 export const usePaymentsStore = create<PaymentsState>((set) => ({
@@ -34,6 +34,8 @@ export const usePaymentsStore = create<PaymentsState>((set) => ({
       const params = new URLSearchParams()
       if (filters?.method) params.set("method", filters.method)
       if (filters?.sessionId) params.set("sessionId", filters.sessionId)
+      if (filters?.from) params.set("from", filters.from)
+      if (filters?.to) params.set("to", filters.to)
       const res = await fetch(`/api/admin/payments?${params}`)
       const data = await res.json()
       set({

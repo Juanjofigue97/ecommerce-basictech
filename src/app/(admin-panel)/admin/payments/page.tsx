@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, RefreshCw } from "lucide-react"
+import { Search, RefreshCw, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { usePaymentsStore } from "@/stores/payments-store"
+import { ReceiptModal, type ReceiptData } from "@/components/pos/ReceiptModal"
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -46,10 +47,46 @@ export default function AdminPaymentsPage() {
   const { payments, total, loading, fetchPayments } = usePaymentsStore()
   const [search, setSearch] = useState("")
   const [methodFilter, setMethodFilter] = useState("all")
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null)
+  const [loadingReceipt, setLoadingReceipt] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchPayments({ method: methodFilter !== "all" ? methodFilter : undefined })
-  }, [methodFilter, fetchPayments])
+    fetchPayments({
+      method: methodFilter !== "all" ? methodFilter : undefined,
+      from: fromDate || undefined,
+      to: toDate || undefined,
+    })
+  }, [methodFilter, fromDate, toDate, fetchPayments])
+
+  async function openReceipt(orderId: string, payment: typeof payments[0]) {
+    setLoadingReceipt(orderId)
+    try {
+      const res = await fetch(`/api/orders/${orderId}`)
+      const order = await res.json()
+      setReceipt({
+        orderNumber: payment.orderNumber,
+        date: payment.createdAt,
+        customerName: payment.customer.name,
+        items: (order.items ?? []).map((i: { name: string; quantity: number; price: number }) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: Number(i.price),
+        })),
+        subtotal: payment.amount - payment.tip,
+        tip: payment.tip,
+        total: payment.amount,
+        paymentMethod: payment.method,
+        receivedAmount: payment.receivedAmount ?? undefined,
+        change: payment.change ?? undefined,
+        terminal: payment.terminal?.name,
+        cashier: payment.cashier?.name,
+      })
+    } finally {
+      setLoadingReceipt(null)
+    }
+  }
 
   const filtered = payments.filter((p) => {
     const q = search.toLowerCase()
@@ -74,7 +111,7 @@ export default function AdminPaymentsPage() {
         </div>
         <Button
           variant="outline"
-          onClick={() => fetchPayments({ method: methodFilter !== "all" ? methodFilter : undefined })}
+          onClick={() => fetchPayments({ method: methodFilter !== "all" ? methodFilter : undefined, from: fromDate || undefined, to: toDate || undefined })}
           disabled={loading}
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -117,8 +154,8 @@ export default function AdminPaymentsPage() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className="relative flex-1 min-w-50 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
@@ -129,7 +166,7 @@ export default function AdminPaymentsPage() {
           />
         </div>
         <Select value={methodFilter} onValueChange={setMethodFilter}>
-          <SelectTrigger className="w-50">
+          <SelectTrigger className="w-48">
             <SelectValue placeholder="Método de pago" />
           </SelectTrigger>
           <SelectContent>
@@ -140,6 +177,26 @@ export default function AdminPaymentsPage() {
             <SelectItem value="TRANSFER">Transferencia</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="w-40"
+          />
+          <span className="text-muted-foreground text-sm">—</span>
+          <Input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="w-40"
+          />
+          {(fromDate || toDate) && (
+            <Button variant="ghost" size="sm" onClick={() => { setFromDate(""); setToDate("") }}>
+              Limpiar
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading && payments.length === 0 ? (
@@ -179,12 +236,13 @@ export default function AdminPaymentsPage() {
                   <TableHead>Método</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
                   <TableHead className="text-right">Propina</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {total === 0 ? "No hay pagos registrados aún" : "Sin resultados para la búsqueda"}
                     </TableCell>
                   </TableRow>
@@ -216,6 +274,18 @@ export default function AdminPaymentsPage() {
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {p.tip > 0 ? formatCOP(p.tip) : "—"}
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={loadingReceipt === p.orderId}
+                          onClick={() => openReceipt(p.orderId, p)}
+                          title="Ver recibo"
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -229,6 +299,14 @@ export default function AdminPaymentsPage() {
         <p className="text-sm text-muted-foreground text-right">
           {filtered.length} de {total} registros
         </p>
+      )}
+
+      {receipt && (
+        <ReceiptModal
+          open={!!receipt}
+          onClose={() => setReceipt(null)}
+          data={receipt}
+        />
       )}
     </div>
   )

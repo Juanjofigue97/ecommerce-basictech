@@ -88,7 +88,7 @@ async function main() {
     data: {
       id: "singleton",
       name: "GoalKit",
-      email: "info@goalkit.com",
+      email: "admin@gmail.com",
       phone: "+57 300 123 4567",
       address: "Calle 72 #10-34, Bogotá",
       description: "Tu tienda oficial de camisetas y equipación de fútbol",
@@ -116,18 +116,18 @@ async function main() {
   }
   console.log(`Created ${categoriesData.length} categories`)
 
-  // ==================== BRANDS (TEAMS) ====================
+  // ==================== BRANDS ====================
   const brandsData = [
-    { name: "Boca Juniors", slug: "boca-juniors" },
-    { name: "River Plate", slug: "river-plate" },
-    { name: "Selección Argentina", slug: "seleccion-argentina" },
-    { name: "Real Madrid", slug: "real-madrid" },
-    { name: "FC Barcelona", slug: "fc-barcelona" },
-    { name: "Manchester City", slug: "manchester-city" },
-    { name: "Liverpool FC", slug: "liverpool" },
-    { name: "PSG", slug: "psg" },
-    { name: "Bayern Munich", slug: "bayern-munich" },
-    { name: "Juventus", slug: "juventus" },
+    { name: "Adidas", slug: "adidas" },
+    { name: "Crower", slug: "crower" },
+    { name: "Kappa", slug: "kappa" },
+    { name: "New Balance", slug: "new-balance" },
+    { name: "Nike", slug: "nike" },
+    { name: "On", slug: "on" },
+    { name: "Puma", slug: "puma" },
+    { name: "Reebok", slug: "reebok" },
+    { name: "Umbro", slug: "umbro" },
+    { name: "Under Armour", slug: "under-armour" },
   ]
 
   const brands: Record<string, string> = {}
@@ -150,52 +150,6 @@ async function main() {
           { value: "L", slug: "l" },
           { value: "XL", slug: "xl" },
           { value: "XXL", slug: "xxl" },
-        ],
-      },
-    },
-    include: { values: true },
-  })
-
-  const ligaAttr = await prisma.attribute.create({
-    data: {
-      name: "Liga",
-      slug: "liga",
-      values: {
-        create: [
-          { value: "Champions League", slug: "champions-league" },
-          { value: "La Liga", slug: "la-liga" },
-          { value: "Premier League", slug: "premier-league" },
-          { value: "Serie A", slug: "serie-a" },
-          { value: "Ligue 1", slug: "ligue-1" },
-          { value: "Copa Libertadores", slug: "copa-libertadores" },
-          { value: "Liga Argentina", slug: "liga-argentina" },
-        ],
-      },
-    },
-    include: { values: true },
-  })
-
-  const tipoAttr = await prisma.attribute.create({
-    data: {
-      name: "Tipo",
-      slug: "tipo",
-      values: {
-        create: [
-          { value: "Local", slug: "local" },
-          { value: "Visitante", slug: "visitante" },
-          { value: "Alternativa", slug: "alternativa" },
-        ],
-      },
-    },
-    include: { values: true },
-  })
-
-  const tallaCalzadoAttr = await prisma.attribute.create({
-    data: {
-      name: "Talla Calzado",
-      slug: "talla-calzado",
-      values: {
-        create: [
           { value: "38", slug: "38" },
           { value: "39", slug: "39" },
           { value: "40", slug: "40" },
@@ -210,62 +164,110 @@ async function main() {
     include: { values: true },
   })
 
+  const colorAttr = await prisma.attribute.create({
+    data: {
+      name: "Color",
+      slug: "color",
+      values: {
+        create: [
+          { value: "Blanco", slug: "blanco" },
+          { value: "Negro", slug: "negro" },
+          { value: "Azul", slug: "azul" },
+          { value: "Rojo", slug: "rojo" },
+          { value: "Verde", slug: "verde" },
+          { value: "Amarillo", slug: "amarillo" },
+          { value: "Celeste", slug: "celeste" },
+          { value: "Naranja", slug: "naranja" },
+          { value: "Violeta", slug: "violeta" },
+          { value: "Rosa", slug: "rosa" },
+        ],
+      },
+    },
+    include: { values: true },
+  })
+
+  const equipoAttr = await prisma.attribute.create({
+    data: {
+      name: "Equipo",
+      slug: "equipo",
+      values: {
+        create: [
+          { value: "Real Madrid", slug: "real-madrid" },
+          { value: "FC Barcelona", slug: "fc-barcelona" },
+          { value: "Selección Argentina", slug: "seleccion-argentina" },
+          { value: "Boca Juniors", slug: "boca-juniors" },
+          { value: "River Plate", slug: "river-plate" },
+          { value: "Manchester City", slug: "manchester-city" },
+          { value: "Liverpool FC", slug: "liverpool-fc" },
+          { value: "PSG", slug: "psg" },
+          { value: "Bayern Munich", slug: "bayern-munich" },
+          { value: "Juventus", slug: "juventus" },
+        ],
+      },
+    },
+    include: { values: true },
+  })
+
   // Lookup maps
   const tallaById: Record<string, string> = {}
   for (const v of tallaAttr.values) tallaById[v.slug] = v.id
 
-  const ligaById: Record<string, string> = {}
-  for (const v of ligaAttr.values) ligaById[v.slug] = v.id
+  const colorById: Record<string, string> = {}
+  for (const v of colorAttr.values) colorById[v.slug] = v.id
 
-  const tipoById: Record<string, string> = {}
-  for (const v of tipoAttr.values) tipoById[v.slug] = v.id
-
-  const calzadoById: Record<string, string> = {}
-  for (const v of tallaCalzadoAttr.values) calzadoById[v.slug] = v.id
+  const equipoById: Record<string, string> = {}
+  for (const v of equipoAttr.values) equipoById[v.slug] = v.id
 
   console.log("Created attributes")
 
   // ==================== CATEGORY ATTRIBUTES ====================
-  // Camisetas: Talla + Liga + Tipo
+  // Camisetas: Talla + Color + Equipo
   await prisma.categoryAttribute.createMany({
     data: [
       { categoryId: categories["camisetas"], attributeId: tallaAttr.id },
-      { categoryId: categories["camisetas"], attributeId: ligaAttr.id },
-      { categoryId: categories["camisetas"], attributeId: tipoAttr.id },
+      { categoryId: categories["camisetas"], attributeId: colorAttr.id },
+      { categoryId: categories["camisetas"], attributeId: equipoAttr.id },
     ],
   })
-  // Shorts: Talla + Tipo
+  // Shorts: Talla + Color + Equipo
   await prisma.categoryAttribute.createMany({
     data: [
       { categoryId: categories["shorts"], attributeId: tallaAttr.id },
-      { categoryId: categories["shorts"], attributeId: tipoAttr.id },
+      { categoryId: categories["shorts"], attributeId: colorAttr.id },
+      { categoryId: categories["shorts"], attributeId: equipoAttr.id },
     ],
   })
-  // Buzos/Camperas: Talla + Liga
+  // Buzos/Camperas: Talla + Color + Equipo
   await prisma.categoryAttribute.createMany({
     data: [
       { categoryId: categories["buzos-camperas"], attributeId: tallaAttr.id },
-      { categoryId: categories["buzos-camperas"], attributeId: ligaAttr.id },
+      { categoryId: categories["buzos-camperas"], attributeId: colorAttr.id },
+      { categoryId: categories["buzos-camperas"], attributeId: equipoAttr.id },
     ],
   })
-  // Calzado: Talla Calzado
-  await prisma.categoryAttribute.create({
-    data: { categoryId: categories["calzado-futbol"], attributeId: tallaCalzadoAttr.id },
+  // Calzado: Talla + Color
+  await prisma.categoryAttribute.createMany({
+    data: [
+      { categoryId: categories["calzado-futbol"], attributeId: tallaAttr.id },
+      { categoryId: categories["calzado-futbol"], attributeId: colorAttr.id },
+    ],
   })
-  // Accesorios: Liga
-  await prisma.categoryAttribute.create({
-    data: { categoryId: categories["accesorios"], attributeId: ligaAttr.id },
+  // Accesorios: Color + Equipo
+  await prisma.categoryAttribute.createMany({
+    data: [
+      { categoryId: categories["accesorios"], attributeId: colorAttr.id },
+      { categoryId: categories["accesorios"], attributeId: equipoAttr.id },
+    ],
   })
   console.log("Created category attributes")
 
   // ==================== PRODUCTS + VARIANTS ====================
 
-  // Helper: creates one variant per talla, cada una con liga + tipo para filtrado
   async function createJerseyVariants(
     productId: string,
     tallas: string[],
-    ligaValueId: string,
-    tipoValueId: string,
+    colorId: string,
+    equipoId: string,
     price: number,
     skuPrefix: string,
     stockPerTalla: Partial<Record<string, number>> = {}
@@ -280,8 +282,8 @@ async function main() {
       await prisma.productVariantValue.createMany({
         data: [
           { variantId: variant.id, attributeValueId: tallaById[talla] },
-          { variantId: variant.id, attributeValueId: ligaValueId },
-          { variantId: variant.id, attributeValueId: tipoValueId },
+          { variantId: variant.id, attributeValueId: colorId },
+          { variantId: variant.id, attributeValueId: equipoId },
         ],
       })
     }
@@ -305,14 +307,14 @@ async function main() {
       isNew: false,
       isFeatured: true,
       categoryId: categories["camisetas"],
-      brandId: brands["real-madrid"],
+      brandId: brands["adidas"],
     },
   })
   await createJerseyVariants(
     camisetaRealMadrid.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["champions-league"],
-    tipoById["local"],
+    colorById["blanco"],
+    equipoById["real-madrid"],
     129990,
     "RM-LOC-2425",
     { xs: 5, s: 12, m: 18, l: 15, xl: 10, xxl: 6 }
@@ -336,14 +338,14 @@ async function main() {
       isNew: true,
       isFeatured: true,
       categoryId: categories["camisetas"],
-      brandId: brands["fc-barcelona"],
+      brandId: brands["nike"],
     },
   })
   await createJerseyVariants(
     camisetaBarcelona.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["la-liga"],
-    tipoById["local"],
+    colorById["azul"],
+    equipoById["fc-barcelona"],
     129990,
     "FCB-LOC-2425",
     { xs: 4, s: 10, m: 20, l: 16, xl: 8, xxl: 4 }
@@ -367,14 +369,14 @@ async function main() {
       isNew: true,
       isFeatured: true,
       categoryId: categories["camisetas"],
-      brandId: brands["seleccion-argentina"],
+      brandId: brands["adidas"],
     },
   })
   await createJerseyVariants(
     camisetaArgentina.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["copa-libertadores"],
-    tipoById["local"],
+    colorById["celeste"],
+    equipoById["seleccion-argentina"],
     119990,
     "ARG-LOC-2024",
     { xs: 6, s: 15, m: 25, l: 20, xl: 12, xxl: 7 }
@@ -398,14 +400,14 @@ async function main() {
       isNew: false,
       isFeatured: true,
       categoryId: categories["camisetas"],
-      brandId: brands["boca-juniors"],
+      brandId: brands["adidas"],
     },
   })
   await createJerseyVariants(
     camisetaBoca.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["liga-argentina"],
-    tipoById["local"],
+    colorById["azul"],
+    equipoById["boca-juniors"],
     89990,
     "BCA-LOC-2024",
     { xs: 5, s: 12, m: 18, l: 14, xl: 8, xxl: 4 }
@@ -428,14 +430,14 @@ async function main() {
       isNew: true,
       isFeatured: false,
       categoryId: categories["camisetas"],
-      brandId: brands["river-plate"],
+      brandId: brands["adidas"],
     },
   })
   await createJerseyVariants(
     camisetaRiver.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["liga-argentina"],
-    tipoById["visitante"],
+    colorById["negro"],
+    equipoById["river-plate"],
     89990,
     "RVR-VIS-2024",
     { xs: 4, s: 8, m: 12, l: 10, xl: 6, xxl: 3 }
@@ -459,14 +461,14 @@ async function main() {
       isNew: false,
       isFeatured: true,
       categoryId: categories["camisetas"],
-      brandId: brands["manchester-city"],
+      brandId: brands["puma"],
     },
   })
   await createJerseyVariants(
     camisetaCity.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["premier-league"],
-    tipoById["local"],
+    colorById["celeste"],
+    equipoById["manchester-city"],
     119990,
     "MCI-LOC-2425",
     { xs: 4, s: 9, m: 14, l: 12, xl: 8, xxl: 4 }
@@ -490,14 +492,14 @@ async function main() {
       isNew: false,
       isFeatured: true,
       categoryId: categories["camisetas"],
-      brandId: brands["liverpool"],
+      brandId: brands["nike"],
     },
   })
   await createJerseyVariants(
     camisetaLiverpool.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["premier-league"],
-    tipoById["local"],
+    colorById["rojo"],
+    equipoById["liverpool-fc"],
     119990,
     "LIV-LOC-2425",
     { xs: 4, s: 9, m: 14, l: 12, xl: 7, xxl: 4 }
@@ -520,14 +522,14 @@ async function main() {
       isNew: true,
       isFeatured: false,
       categoryId: categories["camisetas"],
-      brandId: brands["psg"],
+      brandId: brands["nike"],
     },
   })
   await createJerseyVariants(
     camisetaPSG.id,
     ["xs", "s", "m", "l", "xl", "xxl"],
-    ligaById["ligue-1"],
-    tipoById["local"],
+    colorById["azul"],
+    equipoById["psg"],
     119990,
     "PSG-LOC-2425",
     { xs: 3, s: 8, m: 12, l: 10, xl: 6, xxl: 3 }
@@ -551,7 +553,7 @@ async function main() {
       isNew: false,
       isFeatured: true,
       categoryId: categories["shorts"],
-      brandId: brands["real-madrid"],
+      brandId: brands["adidas"],
     },
   })
   for (const talla of ["xs", "s", "m", "l", "xl", "xxl"] as const) {
@@ -563,7 +565,8 @@ async function main() {
     await prisma.productVariantValue.createMany({
       data: [
         { variantId: variant.id, attributeValueId: tallaById[talla] },
-        { variantId: variant.id, attributeValueId: tipoById["local"] },
+        { variantId: variant.id, attributeValueId: colorById["blanco"] },
+        { variantId: variant.id, attributeValueId: equipoById["real-madrid"] },
       ],
     })
   }
@@ -586,7 +589,7 @@ async function main() {
       isNew: true,
       isFeatured: true,
       categoryId: categories["calzado-futbol"],
-      brandId: brands["real-madrid"],
+      brandId: brands["nike"],
     },
   })
   for (const talla of ["38", "39", "40", "41", "42", "43", "44", "45"] as const) {
@@ -595,8 +598,11 @@ async function main() {
     const variant = await prisma.productVariant.create({
       data: { label, sku, stock: 4, price: 249990, productId: botin.id },
     })
-    await prisma.productVariantValue.create({
-      data: { variantId: variant.id, attributeValueId: calzadoById[talla] },
+    await prisma.productVariantValue.createMany({
+      data: [
+        { variantId: variant.id, attributeValueId: tallaById[talla] },
+        { variantId: variant.id, attributeValueId: colorById["negro"] },
+      ],
     })
   }
 
@@ -640,7 +646,7 @@ async function main() {
   // ==================== USERS ====================
   const adminUser = await prisma.user.create({
     data: {
-      email: "admin@goalkit.com",
+      email: "admin@gmail.com",
       password: "$2b$10$qrNX1DkisQhnt1.Imhoz0u0JDglKCLV87X57rK9zPV0TFfjL7/mnC", // admin123
       name: "Admin Principal",
       phone: "+57 300 111 2222",
@@ -967,7 +973,7 @@ async function main() {
         image: "https://images.unsplash.com/photo-1551958219-acbc141d4254?w=800",
         gradient: "from-sky-900 via-blue-900 to-slate-900",
         ctaText: "Comprar Ahora",
-        ctaHref: "/products?brand=seleccion-argentina",
+        ctaHref: "/products?brand=adidas",
         order: 0,
         isActive: true,
       },
@@ -979,7 +985,7 @@ async function main() {
         image: "https://images.unsplash.com/photo-1589487391730-58f20eb2c308?w=800",
         gradient: "from-purple-900 via-indigo-900 to-slate-900",
         ctaText: "Ver Camiseta",
-        ctaHref: "/products?brand=real-madrid",
+        ctaHref: "/products?brand=nike",
         order: 1,
         isActive: true,
       },
