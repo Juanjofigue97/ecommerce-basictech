@@ -43,6 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           roleId: user.roleId,
+          roleName: user.role?.name ?? null,
           permissions: user.role?.permissions.map((rp) => rp.permission.key) ?? [],
         }
       },
@@ -53,6 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id as string
         token.roleId = user.roleId ?? null
+        token.roleName = user.roleName ?? null
         token.permissions = user.permissions ?? []
       }
       return token
@@ -61,6 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string
         session.user.roleId = token.roleId as string | null
+        session.user.roleName = token.roleName as string | null
         session.user.permissions = (token.permissions as string[]) ?? []
       }
       return session

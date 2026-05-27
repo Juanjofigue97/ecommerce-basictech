@@ -1,8 +1,8 @@
-const CURRENCY_MAP: Record<string, { locale: string; currency: string }> = {
-  pen: { locale: "es-PE", currency: "PEN" },
-  cop: { locale: "es-CO", currency: "COP" },
-  usd: { locale: "en-US", currency: "USD" },
-  eur: { locale: "de-DE", currency: "EUR" },
+const CURRENCY_MAP: Record<string, { locale: string; currency: string; fractionDigits: number }> = {
+  pen: { locale: "es-PE", currency: "PEN", fractionDigits: 2 },
+  cop: { locale: "es-CO", currency: "COP", fractionDigits: 0 },
+  usd: { locale: "en-US", currency: "USD", fractionDigits: 2 },
+  eur: { locale: "de-DE", currency: "EUR", fractionDigits: 2 },
 }
 
 export function formatCurrency(amount: number, currencyCode = "pen"): string {
@@ -10,5 +10,7 @@ export function formatCurrency(amount: number, currencyCode = "pen"): string {
   return new Intl.NumberFormat(config.locale, {
     style: "currency",
     currency: config.currency,
+    minimumFractionDigits: config.fractionDigits,
+    maximumFractionDigits: config.fractionDigits,
   }).format(amount)
 }

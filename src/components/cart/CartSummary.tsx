@@ -4,6 +4,7 @@ import { Truck } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { CartItem } from "@/types"
 import { CheckoutButton } from "./CheckoutButton"
+import { WhatsAppOrderButton } from "./WhatsAppOrderButton"
 import { useCurrency } from "@/hooks/use-currency"
 
 interface CartSummaryProps {
@@ -50,8 +51,9 @@ export function CartSummary({ items }: CartSummaryProps) {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-3">
         <CheckoutButton />
+        <WhatsAppOrderButton />
       </div>
 
       <p className="mt-4 text-center text-xs text-muted-foreground">
