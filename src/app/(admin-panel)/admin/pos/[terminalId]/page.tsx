@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Search, ArrowLeft, UserRound, Minus, Plus, Trash2, X, Loader2 } from "lucide-react"
+import { Search, ArrowLeft, UserRound, Minus, Plus, Trash2, X, Loader2, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { usePOSStore } from "@/stores/pos-store"
 import { CustomerModal } from "@/components/pos/CustomerModal"
 import { PaymentModal } from "@/components/pos/PaymentModal"
+import { VariantSelectorModal } from "@/components/pos/VariantSelectorModal"
 import type { Product } from "@/types"
 
 interface Category {
@@ -49,8 +50,17 @@ export default function POSPage() {
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [showCustomer, setShowCustomer] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
+  const [variantProduct, setVariantProduct] = useState<Product | null>(null)
   const [checkoutError, setCheckoutError] = useState("")
   const [, setDefaultCustomerId] = useState("")
+  const [expectedCash, setExpectedCash] = useState<number | null>(null)
+
+  function refreshSessionBalance(sessionId: string) {
+    fetch(`/api/cash-sessions/${sessionId}`)
+      .then((r) => r.json())
+      .then((d) => { if (typeof d.expectedBalance === "number") setExpectedCash(d.expectedBalance) })
+      .catch(() => {})
+  }
 
   // Load active session for this terminal
   useEffect(() => {
@@ -63,12 +73,13 @@ export default function POSPage() {
         }
         const s = data[0]
         setSession(s)
-        if (ctxTerminalId !== terminalId) {
-          setContext(terminalId, s.id, s.userId)
-          clearCart()
-        }
+        const switchingTerminal = ctxTerminalId !== terminalId
+        setContext(terminalId, s.id, s.userId)
+        if (switchingTerminal) clearCart()
+        refreshSessionBalance(s.id)
       })
       .catch(() => setSessionError("Error al cargar la sesión"))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminalId, ctxTerminalId, setContext, clearCart])
 
   // Load categories
@@ -155,6 +166,7 @@ export default function POSPage() {
 
     clearCart()
     fetchProducts()
+    if (sessionId) refreshSessionBalance(sessionId)
   }
 
   if (sessionError) {
@@ -183,6 +195,12 @@ export default function POSPage() {
         <span className="font-semibold text-sm">
           {session?.terminal.name ?? "Caja"}
         </span>
+        {expectedCash !== null && (
+          <div className="flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+            <Wallet className="h-3.5 w-3.5" />
+            {formatCOP(expectedCash)}
+          </div>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -257,20 +275,25 @@ export default function POSPage() {
             ) : (
               <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
                 {products.map((product) => {
+                  const hasVariants = (product.variants?.length ?? 0) > 0
                   const outOfStock = product.stock === 0
                   return (
                     <button
                       key={product.id}
                       disabled={outOfStock}
-                      onClick={() =>
-                        addItem({
-                          productId: product.id,
-                          name: product.name,
-                          slug: product.slug,
-                          price: product.price,
-                          stock: product.stock,
-                        })
-                      }
+                      onClick={() => {
+                        if (hasVariants) {
+                          setVariantProduct(product)
+                        } else {
+                          addItem({
+                            productId: product.id,
+                            name: product.name,
+                            slug: product.slug,
+                            price: product.price,
+                            stock: product.stock,
+                          })
+                        }
+                      }}
                       className={`relative flex flex-col items-start rounded border p-2 text-left text-sm transition-all ${
                         outOfStock
                           ? "bg-destructive/10 border-destructive/20 cursor-not-allowed opacity-70"
@@ -280,6 +303,11 @@ export default function POSPage() {
                       {outOfStock && (
                         <Badge variant="destructive" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0">
                           Sin stock
+                        </Badge>
+                      )}
+                      {hasVariants && !outOfStock && (
+                        <Badge variant="secondary" className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0">
+                          Tallas
                         </Badge>
                       )}
                       <span className="text-xs text-primary font-mono leading-tight truncate w-full">
@@ -419,6 +447,30 @@ export default function POSPage() {
         subtotal={subtotal}
         onConfirm={handleCheckout}
       />
+
+      {variantProduct && (
+        <VariantSelectorModal
+          open={!!variantProduct}
+          onClose={() => setVariantProduct(null)}
+          productId={variantProduct.id}
+          productName={variantProduct.name}
+          productSlug={variantProduct.slug}
+          productPrice={variantProduct.price}
+          variants={variantProduct.variants ?? []}
+          variantAttributeNames={variantProduct.variantAttributeNames ?? []}
+          onAdd={({ variantId, variantLabel, price, stock }) =>
+            addItem({
+              productId: variantProduct.id,
+              variantId,
+              variantLabel,
+              name: variantProduct.name,
+              slug: variantProduct.slug,
+              price,
+              stock,
+            })
+          }
+        />
+      )}
     </div>
   )
 }

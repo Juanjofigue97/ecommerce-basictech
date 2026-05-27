@@ -101,7 +101,12 @@ export default function PurchaseOrderDetailPage() {
                 <tbody>
                   {order.items.map((item) => (
                     <tr key={item.id} className="border-t">
-                      <td className="px-4 py-3">{item.product.name}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{item.product.name}</p>
+                        {item.variant?.label && (
+                          <p className="text-xs text-muted-foreground">{item.variant.label}</p>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right">{item.quantity}</td>
                       <td className="px-4 py-3 text-right">
                         <span className={item.quantityReceived >= item.quantity ? "text-green-600 font-medium" : "text-muted-foreground"}>

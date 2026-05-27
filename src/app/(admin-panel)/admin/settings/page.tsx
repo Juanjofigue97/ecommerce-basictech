@@ -223,8 +223,8 @@ export default function AdminSettingsPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="america-lima">America/Lima (GMT-5)</SelectItem>
                             <SelectItem value="america-bogota">America/Bogota (GMT-5)</SelectItem>
+                            <SelectItem value="america-lima">America/Lima (GMT-5)</SelectItem>
                             <SelectItem value="america-mexico">America/Mexico_City (GMT-6)</SelectItem>
                           </SelectContent>
                         </Select>
@@ -242,8 +242,8 @@ export default function AdminSettingsPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="pen">Soles (S/)</SelectItem>
                             <SelectItem value="cop">Pesos colombianos (COP)</SelectItem>
+                            <SelectItem value="pen">Soles (S/)</SelectItem>
                             <SelectItem value="usd">Dolares ($)</SelectItem>
                             <SelectItem value="eur">Euros (EUR)</SelectItem>
                           </SelectContent>
@@ -326,7 +326,7 @@ export default function AdminSettingsPage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="shippingCost">Costo de envio estandar (S/)</Label>
+                    <Label htmlFor="shippingCost">Costo de envio estandar (COP)</Label>
                     <Input
                       id="shippingCost"
                       type="number"
@@ -338,7 +338,7 @@ export default function AdminSettingsPage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="freeShippingFrom">Envio gratis desde (S/)</Label>
+                    <Label htmlFor="freeShippingFrom">Envio gratis desde (COP)</Label>
                     <Input
                       id="freeShippingFrom"
                       type="number"
@@ -461,7 +461,7 @@ export default function AdminSettingsPage() {
                   <div>
                     <p className="font-medium">Transferencia bancaria</p>
                     <p className="text-sm text-muted-foreground">
-                      BCP, BBVA, Interbank, Scotiabank
+                      Bancolombia, Davivienda, BBVA, Nequi
                     </p>
                   </div>
                   <Controller
@@ -477,7 +477,7 @@ export default function AdminSettingsPage() {
                   <div>
                     <p className="font-medium">Billeteras digitales</p>
                     <p className="text-sm text-muted-foreground">
-                      Yape, Plin, PayPal
+                      Nequi, Daviplata, PayPal
                     </p>
                   </div>
                   <Controller

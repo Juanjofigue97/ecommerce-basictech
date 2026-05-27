@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, UserPlus, MoreHorizontal, Mail, Ban, Eye, Shield } from "lucide-react"
+import { Search, UserPlus, MoreHorizontal, Mail, Ban, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -32,17 +32,13 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAdminStore } from "@/stores/admin-store"
+import { useRolesStore } from "@/stores/roles-store"
 import { useCurrency } from "@/hooks/use-currency"
 
 const statusConfig = {
   active: { label: "Activo", variant: "default" as const, className: "bg-green-600" },
   inactive: { label: "Inactivo", variant: "secondary" as const, className: "" },
   suspended: { label: "Suspendido", variant: "destructive" as const, className: "" },
-}
-
-const roleLabels: Record<string, string> = {
-  admin: "Administrador",
-  customer: "Cliente",
 }
 
 function UsersSkeleton() {
@@ -58,7 +54,7 @@ function UsersSkeleton() {
               <TableHead>Pedidos</TableHead>
               <TableHead>Total Gastado</TableHead>
               <TableHead>Registro</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-17.5"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,6 +86,7 @@ function UsersSkeleton() {
 
 export default function AdminUsersPage() {
   const { users, loading, fetchUsers } = useAdminStore()
+  const { roles, fetchRoles } = useRolesStore()
   const formatPrice = useCurrency()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -97,24 +94,26 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers()
-  }, [fetchUsers])
+    fetchRoles()
+  }, [fetchUsers, fetchRoles])
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === "all" || user.status === statusFilter
-    const matchesRole = roleFilter === "all" || user.role === roleFilter
+    const matchesRole =
+      roleFilter === "all" ||
+      (roleFilter === "none" ? !user.roleId : user.roleId === roleFilter)
     return matchesSearch && matchesStatus && matchesRole
   })
 
   const activeUsers = users.filter((u) => u.status === "active").length
-  const adminUsers = users.filter((u) => u.role === "admin").length
+  const adminUsers = users.filter((u) => u.roleId !== null).length
   const totalSpent = users.reduce((sum, u) => sum + u.totalSpent, 0)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Usuarios</h1>
@@ -130,7 +129,6 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -155,7 +153,7 @@ export default function AdminUsersPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Administradores
+              Con rol admin
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -174,7 +172,6 @@ export default function AdminUsersPage() {
         </Card>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -187,7 +184,7 @@ export default function AdminUsersPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-37.5">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -198,18 +195,21 @@ export default function AdminUsersPage() {
           </SelectContent>
         </Select>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-45">
             <SelectValue placeholder="Rol" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="customer">Clientes</SelectItem>
-            <SelectItem value="admin">Admins</SelectItem>
+            <SelectItem value="none">Sin rol (clientes)</SelectItem>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.id}>
+                {role.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Table */}
       {loading && users.length === 0 ? (
         <UsersSkeleton />
       ) : (
@@ -224,7 +224,7 @@ export default function AdminUsersPage() {
                   <TableHead>Pedidos</TableHead>
                   <TableHead>Total Gastado</TableHead>
                   <TableHead>Registro</TableHead>
-                  <TableHead className="w-[70px]"></TableHead>
+                  <TableHead className="w-17.5"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -253,9 +253,11 @@ export default function AdminUsersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.role === "admin" ? "default" : "outline"}>
-                            {roleLabels[user.role] || user.role}
-                          </Badge>
+                          {user.roleName ? (
+                            <Badge variant="default">{user.roleName}</Badge>
+                          ) : (
+                            <Badge variant="outline">Cliente</Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant={status.variant} className={status.className}>
@@ -283,12 +285,6 @@ export default function AdminUsersPage() {
                                 <Mail className="mr-2 h-4 w-4" />
                                 Enviar email
                               </DropdownMenuItem>
-                              {user.role !== "admin" && (
-                                <DropdownMenuItem>
-                                  <Shield className="mr-2 h-4 w-4" />
-                                  Hacer admin
-                                </DropdownMenuItem>
-                              )}
                               <DropdownMenuSeparator />
                               {user.status !== "suspended" ? (
                                 <DropdownMenuItem className="text-destructive">

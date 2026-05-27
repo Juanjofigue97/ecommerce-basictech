@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, RefreshCw } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCashSessionsStore, type CashSessionDetail } from "@/stores/cash-sessions-store"
+import { CurrencyInput } from "@/components/ui/currency-input"
+import { Controller } from "react-hook-form"
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -46,17 +48,26 @@ export default function CashSessionDetailPage() {
   const [loadError, setLoadError] = useState("")
   const [closing, setClosing] = useState(false)
   const [closeError, setCloseError] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { closingBalance: 0 },
   })
 
-  useEffect(() => {
-    getSessionDetail(id)
+  function loadDetail() {
+    return getSessionDetail(id)
       .then(setSession)
       .catch((e) => setLoadError((e as Error).message))
-  }, [id, getSessionDetail])
+  }
+
+  useEffect(() => { loadDetail() }, [id, getSessionDetail])
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    await loadDetail()
+    setRefreshing(false)
+  }
 
   async function onSubmit(data: FormData) {
     setClosing(true)
@@ -123,6 +134,17 @@ export default function CashSessionDetailPage() {
               <Badge className="bg-green-600">Abierta</Badge>
             ) : (
               <Badge variant="secondary">Cerrada</Badge>
+            )}
+            {session.status === "OPEN" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
+                Actualizar
+              </Button>
             )}
           </div>
           <p className="text-muted-foreground text-sm">
@@ -221,13 +243,18 @@ export default function CashSessionDetailPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="closingBalance">Dinero real en caja (COP) *</Label>
-                  <Input
-                    id="closingBalance"
-                    type="number"
-                    min={0}
-                    step={1000}
-                    placeholder="0"
-                    {...register("closingBalance")}
+                  <Controller
+                    name="closingBalance"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        id="closingBalance"
+                        value={field.value ?? 0}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder="$ 0"
+                      />
+                    )}
                   />
                   {errors.closingBalance && (
                     <p className="text-sm text-destructive">{errors.closingBalance.message}</p>

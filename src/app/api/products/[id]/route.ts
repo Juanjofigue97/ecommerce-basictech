@@ -61,8 +61,13 @@ export async function GET(
       values: Array.from(attr.values.entries()).map(([id, value]) => ({ id, value })),
     }))
 
+    const totalStock = product.variants.length > 0
+      ? product.variants.reduce((sum, v) => sum + v.stock, 0)
+      : product.stock
+
     return NextResponse.json({
       ...base,
+      stock: totalStock,
       categoryId: product.categoryId,
       brandId: product.brandId,
       comparePrice: product.comparePrice ? Number(product.comparePrice) : undefined,

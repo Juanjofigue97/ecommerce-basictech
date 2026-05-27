@@ -1,397 +1,235 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Download, Eye, MoreHorizontal, RefreshCcw } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Search, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { payments } from "@/data/mock-admin"
+import { usePaymentsStore } from "@/stores/payments-store"
 
-const statusConfig = {
-  completed: { label: "Completado", variant: "default" as const, className: "bg-green-600" },
-  pending: { label: "Pendiente", variant: "secondary" as const, className: "" },
-  failed: { label: "Fallido", variant: "destructive" as const, className: "" },
-  refunded: { label: "Reembolsado", variant: "outline" as const, className: "" },
+function formatCOP(n: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency", currency: "COP", maximumFractionDigits: 0,
+  }).format(n)
 }
 
-const methodLabels = {
-  card: "Tarjeta",
-  transfer: "Transferencia",
-  wallet: "Billetera",
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  }).format(new Date(iso))
+}
+
+const methodLabels: Record<string, string> = {
+  CASH: "Efectivo",
+  CREDIT_CARD: "Tarjeta Crédito",
+  DEBIT_CARD: "Tarjeta Débito",
+  TRANSFER: "Transferencia",
+}
+
+const methodColors: Record<string, string> = {
+  CASH: "bg-green-600",
+  CREDIT_CARD: "bg-blue-600",
+  DEBIT_CARD: "bg-violet-600",
+  TRANSFER: "bg-orange-600",
 }
 
 export default function AdminPaymentsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const { payments, total, loading, fetchPayments } = usePaymentsStore()
+  const [search, setSearch] = useState("")
+  const [methodFilter, setMethodFilter] = useState("all")
 
-  const filteredPayments = payments.filter((payment) => {
-    const matchesSearch =
-      payment.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.orderId.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter
-    return matchesSearch && matchesStatus
+  useEffect(() => {
+    fetchPayments({ method: methodFilter !== "all" ? methodFilter : undefined })
+  }, [methodFilter, fetchPayments])
+
+  const filtered = payments.filter((p) => {
+    const q = search.toLowerCase()
+    return (
+      p.orderNumber.toLowerCase().includes(q) ||
+      p.customer.name.toLowerCase().includes(q) ||
+      (p.terminal?.name ?? "").toLowerCase().includes(q)
+    )
   })
 
-  const totalRevenue = payments
-    .filter((p) => p.status === "completed")
-    .reduce((sum, p) => sum + p.amount, 0)
-
-  const pendingAmount = payments
-    .filter((p) => p.status === "pending")
-    .reduce((sum, p) => sum + p.amount, 0)
-
-  const refundedAmount = payments
-    .filter((p) => p.status === "refunded")
-    .reduce((sum, p) => sum + p.amount, 0)
+  const totalRevenue = payments.reduce((s, p) => s + p.amount, 0)
+  const totalTips = payments.reduce((s, p) => s + p.tip, 0)
+  const cashPayments = payments.filter((p) => p.method === "CASH").length
+  const cardPayments = payments.filter((p) => p.method === "CREDIT_CARD" || p.method === "DEBIT_CARD").length
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Pagos</h1>
-          <p className="text-muted-foreground">
-            Administra los pagos y transacciones
-          </p>
+          <p className="text-muted-foreground">Transacciones registradas en el POS</p>
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Exportar
+        <Button
+          variant="outline"
+          onClick={() => fetchPayments({ method: methodFilter !== "all" ? methodFilter : undefined })}
+          disabled={loading}
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Actualizar
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Recibido
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Recaudado</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              S/ {totalRevenue.toLocaleString()}
-            </p>
+            <p className="text-2xl font-bold text-green-600">{formatCOP(totalRevenue)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pendiente
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Propinas</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-yellow-600">
-              S/ {pendingAmount.toLocaleString()}
-            </p>
+            <p className="text-2xl font-bold text-blue-600">{formatCOP(totalTips)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Reembolsado
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pagos Efectivo</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-600">
-              S/ {refundedAmount.toLocaleString()}
-            </p>
+            <p className="text-2xl font-bold">{cashPayments}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Transacciones
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pagos Tarjeta</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{payments.length}</p>
+            <p className="text-2xl font-bold">{cardPayments}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="completed">Completados</TabsTrigger>
-          <TabsTrigger value="pending">Pendientes</TabsTrigger>
-          <TabsTrigger value="failed">Fallidos</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar por pedido, cliente, terminal..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Select value={methodFilter} onValueChange={setMethodFilter}>
+          <SelectTrigger className="w-50">
+            <SelectValue placeholder="Método de pago" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los métodos</SelectItem>
+            <SelectItem value="CASH">Efectivo</SelectItem>
+            <SelectItem value="CREDIT_CARD">Tarjeta Crédito</SelectItem>
+            <SelectItem value="DEBIT_CARD">Tarjeta Débito</SelectItem>
+            <SelectItem value="TRANSFER">Transferencia</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <TabsContent value="all" className="space-y-4">
-          {/* Filters */}
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar por ID, cliente..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="completed">Completado</SelectItem>
-                <SelectItem value="pending">Pendiente</SelectItem>
-                <SelectItem value="failed">Fallido</SelectItem>
-                <SelectItem value="refunded">Reembolsado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Table */}
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID Pago</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Metodo</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPayments.map((payment) => {
-                    const status = statusConfig[payment.status]
-                    return (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-sm">
-                          {payment.id}
-                        </TableCell>
-                        <TableCell>{payment.userName}</TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {payment.orderId}
-                        </TableCell>
-                        <TableCell>{methodLabels[payment.method]}</TableCell>
-                        <TableCell className="font-medium">
-                          S/ {payment.amount.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={status.variant} className={status.className}>
-                            {status.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {payment.createdAt}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver detalles
-                              </DropdownMenuItem>
-                              {payment.status === "completed" && (
-                                <DropdownMenuItem>
-                                  <RefreshCcw className="mr-2 h-4 w-4" />
-                                  Reembolsar
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="completed">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID Pago</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Metodo</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments
-                    .filter((p) => p.status === "completed")
-                    .map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-sm">{payment.id}</TableCell>
-                        <TableCell>{payment.userName}</TableCell>
-                        <TableCell className="font-mono text-sm">{payment.orderId}</TableCell>
-                        <TableCell>{methodLabels[payment.method]}</TableCell>
-                        <TableCell className="font-medium">S/ {payment.amount.toFixed(2)}</TableCell>
-                        <TableCell className="text-muted-foreground">{payment.createdAt}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver detalles
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <RefreshCcw className="mr-2 h-4 w-4" />
-                                Reembolsar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
+      {loading && payments.length === 0 ? (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {["Fecha", "Pedido", "Cliente", "Terminal", "Método", "Monto", "Propina"].map((h) => (
+                    <TableHead key={h}>{h}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    {[...Array(7)].map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="pending">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID Pago</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Metodo</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments
-                    .filter((p) => p.status === "pending")
-                    .map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-sm">{payment.id}</TableCell>
-                        <TableCell>{payment.userName}</TableCell>
-                        <TableCell className="font-mono text-sm">{payment.orderId}</TableCell>
-                        <TableCell>{methodLabels[payment.method]}</TableCell>
-                        <TableCell className="font-medium">S/ {payment.amount.toFixed(2)}</TableCell>
-                        <TableCell className="text-muted-foreground">{payment.createdAt}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver detalles
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="failed">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Terminal</TableHead>
+                  <TableHead>Cajero</TableHead>
+                  <TableHead>Método</TableHead>
+                  <TableHead className="text-right">Monto</TableHead>
+                  <TableHead className="text-right">Propina</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
                   <TableRow>
-                    <TableHead>ID Pago</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Metodo</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      {total === 0 ? "No hay pagos registrados aún" : "Sin resultados para la búsqueda"}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments
-                    .filter((p) => p.status === "failed")
-                    .map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-sm">{payment.id}</TableCell>
-                        <TableCell>{payment.userName}</TableCell>
-                        <TableCell className="font-mono text-sm">{payment.orderId}</TableCell>
-                        <TableCell>{methodLabels[payment.method]}</TableCell>
-                        <TableCell className="font-medium">S/ {payment.amount.toFixed(2)}</TableCell>
-                        <TableCell className="text-muted-foreground">{payment.createdAt}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver detalles
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                ) : (
+                  filtered.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDate(p.createdAt)}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm font-medium">
+                        {p.orderNumber}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">{p.customer.name}</div>
+                        <div className="text-xs text-muted-foreground">{p.customer.email}</div>
+                      </TableCell>
+                      <TableCell className="text-sm">{p.terminal?.name ?? "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {p.cashier?.name ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${methodColors[p.method] ?? ""} text-white`}>
+                          {methodLabels[p.method] ?? p.method}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-green-600">
+                        {formatCOP(p.amount)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {p.tip > 0 ? formatCOP(p.tip) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {total > 0 && (
+        <p className="text-sm text-muted-foreground text-right">
+          {filtered.length} de {total} registros
+        </p>
+      )}
     </div>
   )
 }

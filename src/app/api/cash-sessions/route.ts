@@ -19,24 +19,44 @@ export async function GET(request: NextRequest) {
         terminal: { select: { id: true, name: true } },
         user: { select: { id: true, name: true, email: true } },
         _count: { select: { orders: true } },
+        payments: { select: { method: true, amount: true } },
+        movements: { select: { type: true, amount: true } },
       },
       orderBy: { openedAt: "desc" },
     })
 
     return NextResponse.json(
-      sessions.map((s) => ({
-        id: s.id,
-        status: s.status,
-        openedAt: s.openedAt.toISOString(),
-        closedAt: s.closedAt?.toISOString() ?? null,
-        openingBalance: Number(s.openingBalance),
-        closingBalance: s.closingBalance ? Number(s.closingBalance) : null,
-        expectedBalance: s.expectedBalance ? Number(s.expectedBalance) : null,
-        observations: s.observations,
-        terminal: s.terminal,
-        user: s.user,
-        orderCount: s._count.orders,
-      }))
+      sessions.map((s) => {
+        const cashIn = s.payments
+          .filter((p) => p.method === "CASH")
+          .reduce((sum, p) => sum + Number(p.amount), 0)
+        const income = s.movements
+          .filter((m) => m.type === "INCOME")
+          .reduce((sum, m) => sum + Number(m.amount), 0)
+        const expense = s.movements
+          .filter((m) => m.type === "EXPENSE")
+          .reduce((sum, m) => sum + Number(m.amount), 0)
+        const expectedBalance =
+          s.status === "OPEN"
+            ? Number(s.openingBalance) + cashIn + income - expense
+            : s.expectedBalance
+              ? Number(s.expectedBalance)
+              : null
+
+        return {
+          id: s.id,
+          status: s.status,
+          openedAt: s.openedAt.toISOString(),
+          closedAt: s.closedAt?.toISOString() ?? null,
+          openingBalance: Number(s.openingBalance),
+          closingBalance: s.closingBalance ? Number(s.closingBalance) : null,
+          expectedBalance,
+          observations: s.observations,
+          terminal: s.terminal,
+          user: s.user,
+          orderCount: s._count.orders,
+        }
+      })
     )
   } catch {
     return NextResponse.json({ error: "Error al obtener sesiones" }, { status: 500 })

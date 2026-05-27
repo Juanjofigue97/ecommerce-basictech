@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
             id: true,
             label: true,
             stock: true,
+            price: true,
             values: {
               select: {
                 attributeValue: {
@@ -132,6 +133,7 @@ export async function GET(request: NextRequest) {
           id: v.id,
           label: v.label,
           stock: v.stock,
+          price: v.price ? Number(v.price) : null,
           values: v.values.map((vv) => ({
             attrName: vv.attributeValue.attribute.name,
             value: vv.attributeValue.value,
@@ -147,8 +149,13 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        const totalStock = p.variants.length > 0
+          ? p.variants.reduce((sum, v) => sum + v.stock, 0)
+          : p.stock
+
         return {
           ...transformProduct(p),
+          stock: totalStock,
           variants: mappedVariants,
           variantAttributeNames: attrNamesOrdered,
         }

@@ -54,7 +54,7 @@ export default function POSSelectionPage() {
             const session = getSession(terminal)
             const hasSession = session !== null
             const balance = hasSession
-              ? session.openingBalance
+              ? (session.expectedBalance ?? session.openingBalance)
               : null
 
             return (

@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select"
 import { useCashMovementsStore } from "@/stores/cash-movements-store"
 import type { CashSession } from "@/stores/cash-sessions-store"
+import { CurrencyInput } from "@/components/ui/currency-input"
+import { Controller } from "react-hook-form"
 
 interface UserOption {
   id: string
@@ -41,7 +43,7 @@ export default function NewCashMovementPage() {
   const [error, setError] = useState("")
 
   const {
-    register, handleSubmit, setValue, watch,
+    register, handleSubmit, setValue, watch, control,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -171,13 +173,18 @@ export default function NewCashMovementPage() {
 
             <div className="space-y-2">
               <Label htmlFor="amount">Monto (COP) *</Label>
-              <Input
-                id="amount"
-                type="number"
-                min={1}
-                step={1000}
-                placeholder="0"
-                {...register("amount")}
+              <Controller
+                name="amount"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    id="amount"
+                    value={field.value ?? 0}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="$ 0"
+                  />
+                )}
               />
               {errors.amount && (
                 <p className="text-sm text-destructive">{errors.amount.message}</p>

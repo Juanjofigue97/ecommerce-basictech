@@ -17,6 +17,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
         items: {
           include: {
             product: { select: { id: true, name: true, images: true, stock: true } },
+            variant: { select: { id: true, label: true, stock: true } },
           },
         },
       },
@@ -48,7 +49,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     const existing = await prisma.purchaseOrder.findUnique({
       where: { id },
-      include: { items: true },
+      include: { items: { include: { variant: { select: { id: true } } } } },
     })
 
     if (!existing) {
@@ -62,44 +63,39 @@ export async function PUT(request: NextRequest, { params }: Params) {
       )
     }
 
-    // When marking as RECEIVED: update each item's quantityReceived and increment product stock
+    // When marking as RECEIVED: update each item's quantityReceived and increment stock
     if (body.status === "RECEIVED" && existing.status !== "RECEIVED") {
       await prisma.$transaction(async (tx) => {
         for (const item of existing.items) {
-          const received = body.itemsReceived?.[item.id] ?? item.quantity
-
-          await tx.purchaseOrderItem.update({
-            where: { id: item.id },
-            data: { quantityReceived: received },
-          })
-
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: received } },
-          })
+          const received: number = body.itemsReceived?.[item.id] ?? item.quantity
+          await tx.purchaseOrderItem.update({ where: { id: item.id }, data: { quantityReceived: received } })
+          if (item.variantId) {
+            await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { increment: received } } })
+            const variants = await tx.productVariant.findMany({ where: { productId: item.productId, isActive: true }, select: { stock: true } })
+            await tx.product.update({ where: { id: item.productId }, data: { stock: variants.reduce((s, v) => s + v.stock, 0) } })
+          } else {
+            await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: received } } })
+          }
         }
       })
     }
 
-    // When marking as PARTIAL: update only quantityReceived per item
+    // When marking as PARTIAL: update only the diff per item
     if (body.status === "PARTIAL" && body.itemsReceived) {
       await prisma.$transaction(async (tx) => {
-        for (const [itemId, received] of Object.entries(body.itemsReceived as Record<string, number>)) {
+        for (const [itemId, qty] of Object.entries(body.itemsReceived as Record<string, number>)) {
           const item = existing.items.find((i) => i.id === itemId)
           if (!item) continue
-
-          const diff = received - item.quantityReceived
+          const diff = qty - item.quantityReceived
           if (diff <= 0) continue
-
-          await tx.purchaseOrderItem.update({
-            where: { id: itemId },
-            data: { quantityReceived: received },
-          })
-
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: diff } },
-          })
+          await tx.purchaseOrderItem.update({ where: { id: itemId }, data: { quantityReceived: qty } })
+          if (item.variantId) {
+            await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { increment: diff } } })
+            const variants = await tx.productVariant.findMany({ where: { productId: item.productId, isActive: true }, select: { stock: true } })
+            await tx.product.update({ where: { id: item.productId }, data: { stock: variants.reduce((s, v) => s + v.stock, 0) } })
+          } else {
+            await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: diff } } })
+          }
         }
       })
     }
@@ -118,6 +114,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         items: {
           include: {
             product: { select: { id: true, name: true, images: true, stock: true } },
+            variant: { select: { id: true, label: true, stock: true } },
           },
         },
       },

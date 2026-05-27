@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select"
 import { useCashSessionsStore } from "@/stores/cash-sessions-store"
 import { useTerminalsStore } from "@/stores/terminals-store"
+import { CurrencyInput } from "@/components/ui/currency-input"
+import { Controller } from "react-hook-form"
 
 interface UserOption {
   id: string
@@ -40,7 +42,7 @@ export default function NewCashSessionPage() {
   const [error, setError] = useState("")
 
   const {
-    register, handleSubmit, setValue, watch,
+    register, handleSubmit, setValue, watch, control,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -135,13 +137,18 @@ export default function NewCashSessionPage() {
 
             <div className="space-y-2">
               <Label htmlFor="openingBalance">Base inicial (COP)</Label>
-              <Input
-                id="openingBalance"
-                type="number"
-                min={0}
-                step={1000}
-                placeholder="0"
-                {...register("openingBalance")}
+              <Controller
+                name="openingBalance"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    id="openingBalance"
+                    value={field.value ?? 0}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="$ 0"
+                  />
+                )}
               />
               {errors.openingBalance && (
                 <p className="text-sm text-destructive">{errors.openingBalance.message}</p>

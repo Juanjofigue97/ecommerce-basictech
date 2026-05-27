@@ -8,6 +8,8 @@ export interface PurchaseOrderItem {
   total: number
   productId: string
   product: { id: string; name: string; images: string[] }
+  variantId: string | null
+  variant: { id: string; label: string | null; stock: number } | null
 }
 
 export interface PurchaseOrder {
@@ -31,7 +33,7 @@ interface PurchaseOrdersState {
   loading: boolean
   error: string | null
   fetchOrders: (params?: { status?: string; supplierId?: string; limit?: number; offset?: number }) => Promise<void>
-  createOrder: (data: { supplierId: string; createdById: string; notes?: string; items: { productId: string; quantity: number; unitCost: number }[] }) => Promise<PurchaseOrder>
+  createOrder: (data: { supplierId: string; notes?: string; items: { productId: string; variantId?: string; quantity: number; unitCost: number }[] }) => Promise<PurchaseOrder>
   updateOrder: (id: string, data: { status: string; notes?: string; itemsReceived?: Record<string, number> }) => Promise<PurchaseOrder>
 }
 

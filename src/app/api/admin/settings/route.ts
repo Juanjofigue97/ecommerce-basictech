@@ -5,15 +5,18 @@ const SINGLETON_ID = "singleton"
 
 export async function GET() {
   try {
-    // Migrate old default "pen" → "cop" (safe: only runs if value is still the old default)
     await prisma.storeSettings.updateMany({
       where: { id: SINGLETON_ID, currency: "pen" },
       data: { currency: "cop" },
     })
+    await prisma.storeSettings.updateMany({
+      where: { id: SINGLETON_ID, timezone: "america-lima" },
+      data: { timezone: "america-bogota" },
+    })
 
     const settings = await prisma.storeSettings.upsert({
       where: { id: SINGLETON_ID },
-      create: { id: SINGLETON_ID, currency: "cop" },
+      create: { id: SINGLETON_ID, currency: "cop", timezone: "america-bogota" },
       update: {},
     })
 

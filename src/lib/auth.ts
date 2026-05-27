@@ -18,26 +18,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: { permission: true },
+                },
+              },
+            },
+          },
         })
 
-        if (!user) {
-          return null
-        }
+        if (!user) return null
 
         const passwordMatch = await bcrypt.compare(
           credentials.password as string,
           user.password
         )
 
-        if (!passwordMatch) {
-          return null
-        }
+        if (!passwordMatch) return null
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          roleId: user.roleId,
+          permissions: user.role?.permissions.map((rp) => rp.permission.key) ?? [],
         }
       },
     }),
@@ -46,14 +52,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string
-        token.role = user.role as string
+        token.roleId = user.roleId ?? null
+        token.permissions = user.permissions ?? []
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.roleId = token.roleId as string | null
+        session.user.permissions = (token.permissions as string[]) ?? []
       }
       return session
     },

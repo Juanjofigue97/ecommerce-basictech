@@ -62,7 +62,8 @@ interface AdminUser {
   name: string
   email: string
   avatar?: string
-  role: string
+  roleId: string | null
+  roleName: string | null
   status: string
   createdAt: string
   orders: number
@@ -117,7 +118,7 @@ interface AdminState {
   // Actions
   fetchDashboard: () => Promise<void>
   fetchOrders: (params?: { status?: string; limit?: number; offset?: number }) => Promise<void>
-  fetchUsers: (params?: { role?: string; status?: string }) => Promise<void>
+  fetchUsers: (params?: { roleId?: string; status?: string }) => Promise<void>
   updateOrderStatus: (id: string, status: string) => Promise<void>
   fetchSettings: () => Promise<void>
   saveSettings: (data: Partial<StoreSettings>) => Promise<void>
@@ -177,7 +178,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       const searchParams = new URLSearchParams()
-      if (params.role) searchParams.set("role", params.role)
+      if (params.roleId) searchParams.set("roleId", params.roleId)
       if (params.status) searchParams.set("status", params.status)
 
       const response = await fetch(`/api/users?${searchParams}`)

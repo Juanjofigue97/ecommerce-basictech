@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { CurrencyInput } from "@/components/ui/currency-input"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
@@ -149,14 +149,10 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">
                   Dinero recibido
                 </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={received}
-                  onChange={(e) => setReceived(e.target.value)}
-                  placeholder="0"
-                  autoFocus
+                <CurrencyInput
+                  value={receivedNum}
+                  onChange={(n) => setReceived(n > 0 ? String(n) : "")}
+                  placeholder="$ 0"
                 />
               </div>
 

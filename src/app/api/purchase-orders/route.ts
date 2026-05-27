@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
           items: {
             include: {
               product: { select: { id: true, name: true, images: true } },
+              variant: { select: { id: true, label: true } },
             },
           },
         },
@@ -51,8 +53,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+
     const body = await request.json()
-    const items = body.items as { productId: string; quantity: number; unitCost: number }[]
+    const items = body.items as { productId: string; variantId?: string; quantity: number; unitCost: number }[]
 
     const total = items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0)
     const orderNumber = `PO-${Date.now()}`
@@ -63,10 +70,11 @@ export async function POST(request: NextRequest) {
         total,
         notes: body.notes,
         supplierId: body.supplierId,
-        createdById: body.createdById,
+        createdById: session.user.id,
         items: {
           create: items.map((item) => ({
             productId: item.productId,
+            variantId: item.variantId ?? null,
             quantity: item.quantity,
             unitCost: item.unitCost,
             total: item.quantity * item.unitCost,

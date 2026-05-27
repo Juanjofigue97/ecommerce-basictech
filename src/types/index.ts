@@ -2,6 +2,7 @@ export interface ProductVariantItem {
   id: string
   label: string | null
   stock: number
+  price?: number | null
   values?: { attrName: string; value: string }[]
 }
 
