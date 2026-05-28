@@ -49,7 +49,7 @@ export function buildWorkbook<T>(config: ExportConfig<T>): XLSX.WorkBook {
 /** Devuelve el contenido Excel como Uint8Array */
 export function buildExcelBuffer<T>(config: ExportConfig<T>): Uint8Array {
   const wb = buildWorkbook(config)
-  return XLSX.write(wb, { bookType: "xlsx", type: "array" }) as Uint8Array
+  return new Uint8Array(XLSX.write(wb, { bookType: "xlsx", type: "array" }) as number[])
 }
 
 /** Devuelve el contenido CSV como string */
