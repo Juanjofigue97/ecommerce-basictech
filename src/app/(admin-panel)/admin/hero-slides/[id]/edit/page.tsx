@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { useHeroSlidesStore } from "@/stores/hero-slides-store"
-import { GRADIENT_OPTIONS } from "../new/page"
+import { GRADIENT_OPTIONS } from "../../constants"
 
 const schema = z.object({
   title: z.string().min(1, "El título es requerido"),
