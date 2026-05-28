@@ -7,8 +7,6 @@ import { transformCategory } from "@/lib/transformers"
 const empresaLinks = [
   { name: "Sobre Nosotros", href: "/about" },
   { name: "Contacto", href: "/contact" },
-  { name: "Blog", href: "/blog" },
-  { name: "Trabaja con Nosotros", href: "/careers" },
 ]
 
 const ayudaLinks = [

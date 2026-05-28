@@ -44,8 +44,51 @@ export function VariantSelectorModal({
   const [selected, setSelected] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (open) setSelected({})
-  }, [open])
+    if (!open) return
+
+    // Pre-selecciona el primer valor con stock para cada atributo en orden
+    const initial: Record<string, string> = {}
+
+    for (let idx = 0; idx < variantAttributeNames.length; idx++) {
+      const attrName = variantAttributeNames[idx]
+      const prevAttrs = variantAttributeNames.slice(0, idx)
+
+      // Variantes que coinciden con las selecciones previas ya acumuladas
+      const filtered = variants.filter((v) =>
+        prevAttrs.every((prev) => {
+          const sel = initial[prev]
+          if (!sel) return true
+          return v.values?.some((val) => val.attrName === prev && val.value === sel)
+        }),
+      )
+
+      const values = Array.from(
+        new Set(
+          filtered.flatMap((v) => {
+            const match = v.values?.find((val) => val.attrName === attrName)
+            return match ? [match.value] : []
+          }),
+        ),
+      )
+
+      if (values.length === 0) continue
+
+      // Elige el primero que tenga stock; si ninguno tiene, igual elige el primero
+      const firstWithStock = values.find((value) => {
+        const test = { ...initial, [attrName]: value }
+        return variants.some(
+          (v) =>
+            Object.entries(test).every(([a, val]) =>
+              v.values?.some((vv) => vv.attrName === a && vv.value === val),
+            ) && v.stock > 0,
+        )
+      })
+
+      initial[attrName] = firstWithStock ?? values[0]
+    }
+
+    setSelected(initial)
+  }, [open, variants, variantAttributeNames])
 
   // Valores disponibles para un atributo dado lo que ya está seleccionado antes
   function getValues(attrName: string, attrIndex: number): string[] {
@@ -82,11 +125,55 @@ export function VariantSelectorModal({
   }
 
   function handleSelect(attrName: string, value: string, attrIndex: number) {
+    // Mantener selecciones previas + el nuevo valor
     const next: Record<string, string> = {}
     variantAttributeNames.slice(0, attrIndex).forEach((a) => {
       if (selected[a]) next[a] = selected[a]
     })
     next[attrName] = value
+
+    // Para cada atributo posterior: conservar la selección actual si sigue disponible,
+    // si no, elegir el primer valor con stock
+    for (let idx = attrIndex + 1; idx < variantAttributeNames.length; idx++) {
+      const attr = variantAttributeNames[idx]
+      const prevAttrs = variantAttributeNames.slice(0, idx)
+
+      const filtered = variants.filter((v) =>
+        prevAttrs.every((prev) => {
+          const sel = next[prev]
+          if (!sel) return true
+          return v.values?.some((val) => val.attrName === prev && val.value === sel)
+        }),
+      )
+
+      const values = Array.from(
+        new Set(
+          filtered.flatMap((v) => {
+            const match = v.values?.find((val) => val.attrName === attr)
+            return match ? [match.value] : []
+          }),
+        ),
+      )
+
+      if (values.length === 0) continue
+
+      const current = selected[attr]
+      if (current && values.includes(current)) {
+        next[attr] = current
+      } else {
+        const firstWithStock = values.find((v) => {
+          const test = { ...next, [attr]: v }
+          return variants.some(
+            (vv) =>
+              Object.entries(test).every(([a, val]) =>
+                vv.values?.some((vvv) => vvv.attrName === a && vvv.value === val),
+              ) && vv.stock > 0,
+          )
+        })
+        next[attr] = firstWithStock ?? values[0]
+      }
+    }
+
     setSelected(next)
   }
 
