@@ -31,7 +31,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/basictech-shop:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/basictech-shop:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
