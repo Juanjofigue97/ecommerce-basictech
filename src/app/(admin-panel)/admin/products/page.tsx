@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useCurrency } from "@/hooks/use-currency"
 import Link from "next/link"
 import Image from "next/image"
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Loader2 } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Loader2, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -175,12 +175,20 @@ export default function AdminProductsPage() {
             Administra el catalogo de productos de tu tienda
           </p>
         </div>
-        <Button asChild>
-          <Link href="/admin/products/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Producto
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/admin/products/import-export">
+              <ArrowUpDown className="mr-2 h-4 w-4" />
+              Import / Export
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/admin/products/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Producto
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

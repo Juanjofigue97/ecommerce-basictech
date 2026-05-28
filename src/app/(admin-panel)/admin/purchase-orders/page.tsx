@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, Plus, MoreHorizontal, Eye, CheckCircle, XCircle } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Eye, CheckCircle, XCircle, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select"
 import { usePurchaseOrdersStore } from "@/stores/purchase-orders-store"
 import { useCurrency } from "@/hooks/use-currency"
+import { downloadExcel, type ExportColumn } from "@/lib/export"
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   DRAFT: { label: "Borrador", className: "bg-muted text-muted-foreground" },
@@ -49,6 +50,17 @@ export default function AdminPurchaseOrdersPage() {
   const totalPending = orders.filter((o) => o.status === "ORDERED" || o.status === "PARTIAL").length
   const totalAmount = orders.reduce((sum, o) => sum + o.total, 0)
 
+  type OrderRow = typeof filtered[number]
+  const exportColumns: ExportColumn<OrderRow>[] = [
+    { key: "orderNumber",   label: "N° Orden" },
+    { key: "supplier.name", label: "Proveedor" },
+    { key: "supplier.nit",  label: "NIT" },
+    { key: "items",         label: "Ítems", format: (v) => (v as unknown[]).length },
+    { key: "total",         label: "Total",  format: (v) => Number(v) },
+    { key: "status",        label: "Estado", format: (v) => statusConfig[String(v)]?.label ?? String(v) },
+    { key: "createdAt",     label: "Fecha",  format: (v) => new Date(String(v)).toLocaleDateString("es-CO") },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -56,12 +68,20 @@ export default function AdminPurchaseOrdersPage() {
           <h1 className="text-2xl font-bold">Órdenes de Compra</h1>
           <p className="text-muted-foreground">Gestiona las compras a proveedores</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/purchase-orders/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Orden
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => downloadExcel({ filename: "compras", sheetName: "Órdenes de Compra", columns: exportColumns, data: filtered })}
+            disabled={filtered.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />Excel
+          </Button>
+          <Button asChild>
+            <Link href="/admin/purchase-orders/new">
+              <Plus className="mr-2 h-4 w-4" />Nueva Orden
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

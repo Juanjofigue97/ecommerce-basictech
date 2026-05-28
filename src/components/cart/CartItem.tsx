@@ -4,18 +4,21 @@ import Image from "next/image"
 import Link from "next/link"
 import { Minus, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { CartItem as CartItemType } from "@/types"
 import { useCurrency } from "@/hooks/use-currency"
 
 interface CartItemProps {
   item: CartItemType
-  onUpdateQuantity: (productId: string, quantity: number) => void
-  onRemove: (productId: string) => void
+  onUpdateQuantity: (productId: string, quantity: number, variantId?: string) => void
+  onRemove: (productId: string, variantId?: string) => void
 }
 
 export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
-  const { product, quantity } = item
+  const { product, quantity, variantId, variantLabel, variantPrice } = item
   const formatPrice = useCurrency()
+
+  const unitPrice = variantPrice ?? product.price
 
   return (
     <div className="flex gap-4 py-4">
@@ -33,20 +36,25 @@ export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
       {/* Details */}
       <div className="flex flex-1 flex-col">
         <div className="flex justify-between">
-          <div>
+          <div className="flex-1 pr-2">
             <p className="text-xs text-muted-foreground">{product.brand}</p>
             <Link
-              href={`/products/${product.id}`}
+              href={`/products/${product.slug}`}
               className="font-medium hover:text-primary transition-colors line-clamp-2"
             >
               {product.name}
             </Link>
+            {variantLabel && (
+              <Badge variant="secondary" className="mt-1 text-xs font-normal">
+                {variantLabel}
+              </Badge>
+            )}
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            onClick={() => onRemove(product.id)}
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={() => onRemove(product.id, variantId)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -59,7 +67,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-r-none"
-              onClick={() => onUpdateQuantity(product.id, quantity - 1)}
+              onClick={() => onUpdateQuantity(product.id, quantity - 1, variantId)}
               disabled={quantity <= 1}
             >
               <Minus className="h-3 w-3" />
@@ -69,8 +77,7 @@ export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-l-none"
-              onClick={() => onUpdateQuantity(product.id, quantity + 1)}
-              disabled={quantity >= product.stock}
+              onClick={() => onUpdateQuantity(product.id, quantity + 1, variantId)}
             >
               <Plus className="h-3 w-3" />
             </Button>
@@ -79,11 +86,11 @@ export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
           {/* Price */}
           <div className="text-right">
             <p className="font-semibold text-primary">
-              {formatPrice(product.price * quantity)}
+              {formatPrice(unitPrice * quantity)}
             </p>
             {quantity > 1 && (
               <p className="text-xs text-muted-foreground">
-                {formatPrice(product.price)} c/u
+                {formatPrice(unitPrice)} c/u
               </p>
             )}
           </div>

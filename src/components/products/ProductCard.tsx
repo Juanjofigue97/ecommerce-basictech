@@ -7,6 +7,7 @@ import { Heart, ShoppingCart, Star, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Product } from "@/types"
 import { useCartStore } from "@/stores/cart-store"
 import { useCurrency } from "@/hooks/use-currency"
@@ -17,10 +18,42 @@ interface ProductCardProps {
 
 const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1629429408209-1f912961dbd8?w=400&h=400&fit=crop"
 
+function getValuesForAttr(product: Product, attrName: string): string[] {
+  return [...new Set(
+    product.variants!.flatMap(v =>
+      v.values?.filter(vv => vv.attrName === attrName).map(vv => vv.value) ?? []
+    )
+  )]
+}
+
+function isValueAvailable(product: Product, attrName: string, value: string, selectedValues: Record<string, string>): boolean {
+  return product.variants!.some(v =>
+    v.values?.find(vv => vv.attrName === attrName)?.value === value &&
+    Object.entries(selectedValues).every(([selAttr, selVal]) =>
+      selAttr === attrName || v.values?.find(vv => vv.attrName === selAttr)?.value === selVal
+    ) &&
+    v.stock > 0
+  )
+}
+
 export function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem)
   const formatPrice = useCurrency()
   const [added, setAdded] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const hasVariantAttrs =
+    (product.variantAttributeNames?.length ?? 0) > 0 && (product.variants?.length ?? 0) > 0
+
+  const [selectedValues, setSelectedValues] = useState<Record<string, string>>(() => {
+    if (!hasVariantAttrs) return {}
+    const initial: Record<string, string> = {}
+    for (const attrName of product.variantAttributeNames!) {
+      const vals = getValuesForAttr(product, attrName)
+      if (vals.length === 1) initial[attrName] = vals[0]
+    }
+    return initial
+  })
 
   const hasDiscount = product.originalPrice && product.originalPrice > product.price
   const discountPercent = hasDiscount
@@ -29,13 +62,64 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const productImage = product.images?.[0] || PLACEHOLDER_IMAGE
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const allSelected =
+    hasVariantAttrs && product.variantAttributeNames!.every(attr => selectedValues[attr])
+
+  const selectedVariant = allSelected
+    ? product.variants!.find(v =>
+        product.variantAttributeNames!.every(attrName =>
+          v.values?.find(vv => vv.attrName === attrName)?.value === selectedValues[attrName]
+        )
+      ) ?? null
+    : null
+
+  const canConfirm = allSelected && (selectedVariant?.stock ?? 0) > 0
+
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      // Reset solo las selecciones que tengan más de una opción
+      setSelectedValues(() => {
+        const reset: Record<string, string> = {}
+        for (const attrName of (product.variantAttributeNames ?? [])) {
+          const vals = getValuesForAttr(product, attrName)
+          if (vals.length === 1) reset[attrName] = vals[0]
+        }
+        return reset
+      })
+    }
+    setOpen(next)
+  }
+
+  const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    addItem(product)
+    if (!hasVariantAttrs) {
+      addItem(product)
+      setAdded(true)
+      setTimeout(() => setAdded(false), 1500)
+      return
+    }
+    setOpen(true)
+  }
+
+  const handleConfirmVariant = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!canConfirm || !selectedVariant) return
+    const label =
+      selectedVariant.label ??
+      product.variantAttributeNames!.map(a => selectedValues[a]).join(" / ")
+    addItem(product, {
+      variantId: selectedVariant.id,
+      variantLabel: label,
+      variantPrice: selectedVariant.price ?? undefined,
+    })
+    setOpen(false)
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
   }
+
+  const maxQty = product.stock
 
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-lg">
@@ -75,25 +159,86 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Quick Add Button */}
         <div className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none translate-y-full opacity-0 transition-all group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
-          <Button
-            className="w-full"
-            size="sm"
-            onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            variant={added ? "secondary" : "default"}
-          >
-            {added ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Agregado
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Agregar
-              </>
+          <Popover open={open} onOpenChange={handleOpenChange}>
+            <PopoverTrigger asChild>
+              <Button
+                className="w-full"
+                size="sm"
+                onClick={handleQuickAdd}
+                disabled={product.stock === 0 && !hasVariantAttrs}
+                variant={added ? "secondary" : "default"}
+              >
+                {added ? (
+                  <><Check className="mr-2 h-4 w-4" />Agregado</>
+                ) : (
+                  <><ShoppingCart className="mr-2 h-4 w-4" />Agregar</>
+                )}
+              </Button>
+            </PopoverTrigger>
+
+            {hasVariantAttrs && (
+              <PopoverContent
+                className="w-64 p-3"
+                side="top"
+                align="center"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+              >
+                <div className="space-y-3">
+                  {product.variantAttributeNames!.map((attrName) => {
+                    const vals = getValuesForAttr(product, attrName)
+                    return (
+                      <div key={attrName} className="space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {attrName}
+                          </span>
+                          {selectedValues[attrName] && (
+                            <span className="text-xs text-foreground">— {selectedValues[attrName]}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {vals.map((val) => {
+                            const isSelected = selectedValues[attrName] === val
+                            const available = isValueAvailable(product, attrName, val, selectedValues)
+                            return (
+                              <button
+                                key={val}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  if (!available) return
+                                  setSelectedValues(prev => ({ ...prev, [attrName]: val }))
+                                }}
+                                disabled={!available}
+                                className={`rounded border px-2.5 py-1 text-xs font-medium transition-all ${
+                                  isSelected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : available
+                                    ? "border-border hover:border-primary hover:text-primary"
+                                    : "cursor-not-allowed border-border/40 text-muted-foreground/40 line-through"
+                                }`}
+                              >
+                                {val}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    disabled={!canConfirm}
+                    onClick={handleConfirmVariant}
+                  >
+                    {canConfirm ? "Agregar al carrito" : "Seleccioná las opciones"}
+                  </Button>
+                </div>
+              </PopoverContent>
             )}
-          </Button>
+          </Popover>
         </div>
       </div>
 

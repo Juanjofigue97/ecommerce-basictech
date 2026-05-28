@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, RefreshCw, Receipt } from "lucide-react"
+import { Search, RefreshCw, Receipt, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { usePaymentsStore } from "@/stores/payments-store"
 import { ReceiptModal, type ReceiptData } from "@/components/pos/ReceiptModal"
+import { downloadExcel, downloadCSV, type ExportColumn } from "@/lib/export"
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -102,6 +103,19 @@ export default function AdminPaymentsPage() {
   const cashPayments = payments.filter((p) => p.method === "CASH").length
   const cardPayments = payments.filter((p) => p.method === "CREDIT_CARD" || p.method === "DEBIT_CARD").length
 
+  type PaymentRow = typeof filtered[number]
+  const exportColumns: ExportColumn<PaymentRow>[] = [
+    { key: "createdAt", label: "Fecha", format: (v) => formatDate(String(v)) },
+    { key: "orderNumber", label: "Pedido" },
+    { key: "customer.name", label: "Cliente" },
+    { key: "customer.email", label: "Email" },
+    { key: "terminal.name", label: "Terminal", format: (v) => (v != null ? String(v) : "—") },
+    { key: "cashier.name", label: "Cajero/a", format: (v) => (v != null ? String(v) : "—") },
+    { key: "method", label: "Método", format: (v) => methodLabels[String(v)] ?? String(v) },
+    { key: "amount", label: "Monto", format: (v) => Number(v) },
+    { key: "tip", label: "Propina", format: (v) => Number(v) },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -109,14 +123,32 @@ export default function AdminPaymentsPage() {
           <h1 className="text-2xl font-bold">Pagos</h1>
           <p className="text-muted-foreground">Transacciones registradas en el POS</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => fetchPayments({ method: methodFilter !== "all" ? methodFilter : undefined, from: fromDate || undefined, to: toDate || undefined })}
-          disabled={loading}
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Actualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => downloadCSV({ filename: "pagos", columns: exportColumns, data: filtered })}
+            disabled={filtered.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => downloadExcel({ filename: "pagos", sheetName: "Pagos", columns: exportColumns, data: filtered })}
+            disabled={filtered.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Excel
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => fetchPayments({ method: methodFilter !== "all" ? methodFilter : undefined, from: fromDate || undefined, to: toDate || undefined })}
+            disabled={loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Actualizar
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

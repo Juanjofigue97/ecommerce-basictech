@@ -33,7 +33,15 @@ interface ProductDetailProps {
 export function ProductDetail({ product, variants = [], variantAttributes = [] }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
-  const [selectedValues, setSelectedValues] = useState<Record<string, string>>({})
+  const [selectedValues, setSelectedValues] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    for (const attr of variantAttributes) {
+      if (attr.values.length === 1) {
+        initial[attr.id] = attr.values[0].id
+      }
+    }
+    return initial
+  })
   const addItem = useCartStore((state) => state.addItem)
   const formatPrice = useCurrency()
 

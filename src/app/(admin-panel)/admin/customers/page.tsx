@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, UserPlus, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
+import { Search, UserPlus, MoreHorizontal, Eye, Pencil, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +22,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useCustomersStore } from "@/stores/customers-store"
+import { downloadExcel, type ExportColumn } from "@/lib/export"
 
 const statusConfig = {
   ACTIVE: { label: "Activo", className: "bg-green-600 text-white" },
@@ -88,6 +89,18 @@ export default function AdminCustomersPage() {
   const physicalCount = customers.filter((c) => c.source === "PHYSICAL" || c.source === "BOTH").length
   const onlineCount = customers.filter((c) => c.source === "ONLINE" || c.source === "BOTH").length
 
+  type CustomerRow = typeof filtered[number]
+  const exportColumns: ExportColumn<CustomerRow>[] = [
+    { key: "name",      label: "Nombre" },
+    { key: "email",     label: "Email",     format: (v) => (v != null ? String(v) : "—") },
+    { key: "phone",     label: "Teléfono",  format: (v) => (v != null ? String(v) : "—") },
+    { key: "document",  label: "Documento", format: (v) => (v != null ? String(v) : "—") },
+    { key: "source",    label: "Fuente",    format: (v) => sourceLabels[String(v)] ?? String(v) },
+    { key: "status",    label: "Estado",    format: (v) => statusConfig[v as keyof typeof statusConfig]?.label ?? String(v) },
+    { key: "_count.orders", label: "Pedidos", format: (v) => Number(v) },
+    { key: "createdAt", label: "Registro",  format: (v) => new Date(String(v)).toLocaleDateString("es-CO") },
+  ]
+
   async function handleDelete() {
     if (!deleteId) return
     try {
@@ -107,12 +120,20 @@ export default function AdminCustomersPage() {
           <h1 className="text-2xl font-bold">Clientes</h1>
           <p className="text-muted-foreground">Administra los clientes de tu tienda</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/customers/new">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Nuevo Cliente
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => downloadExcel({ filename: "clientes", sheetName: "Clientes", columns: exportColumns, data: filtered })}
+            disabled={filtered.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />Excel
+          </Button>
+          <Button asChild>
+            <Link href="/admin/customers/new">
+              <UserPlus className="mr-2 h-4 w-4" />Nuevo Cliente
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

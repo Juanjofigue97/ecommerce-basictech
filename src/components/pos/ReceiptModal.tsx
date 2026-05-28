@@ -1,6 +1,6 @@
 "use client"
 
-import { Printer } from "lucide-react"
+import { Printer, FileDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
@@ -48,6 +48,83 @@ interface Props {
 }
 
 export function ReceiptModal({ open, onClose, data }: Props) {
+  async function handleDownloadPDF() {
+    const { jsPDF } = await import("jspdf")
+    const doc = new jsPDF({ unit: "mm", format: [80, 200], orientation: "portrait" })
+
+    const margin = 5
+    const pageWidth = 80
+    let y = margin
+
+    function line(text: string, align: "left" | "center" | "right" = "left", bold = false) {
+      doc.setFont("courier", bold ? "bold" : "normal")
+      if (align === "center") {
+        doc.text(text, pageWidth / 2, y, { align: "center" })
+      } else if (align === "right") {
+        doc.text(text, pageWidth - margin, y, { align: "right" })
+      } else {
+        doc.text(text, margin, y)
+      }
+      y += 4.5
+    }
+
+    function row(left: string, right: string, bold = false) {
+      doc.setFont("courier", bold ? "bold" : "normal")
+      doc.text(left, margin, y)
+      doc.text(right, pageWidth - margin, y, { align: "right" })
+      y += 4.5
+    }
+
+    function dashes() {
+      doc.setLineDashPattern([1, 1], 0)
+      doc.line(margin, y - 1, pageWidth - margin, y - 1)
+      y += 2
+    }
+
+    doc.setFontSize(9)
+
+    line(data.storeName ?? "GoalKit", "center", true)
+    doc.setFontSize(7)
+    line(formatDate(data.date), "center")
+    line(data.orderNumber, "center", true)
+    y += 1
+    dashes()
+
+    row("Cliente", data.customerName)
+    if (data.terminal) row("Terminal", data.terminal)
+    if (data.cashier) row("Cajero/a", data.cashier)
+    y += 1
+    dashes()
+
+    for (const item of data.items) {
+      const total = formatCOP(item.price * item.quantity)
+      row(item.name.slice(0, 28), total)
+      if (item.variantLabel) line(`  ${item.variantLabel}`)
+      line(`  ${item.quantity} x ${formatCOP(item.price)}`)
+    }
+    y += 1
+    dashes()
+
+    row("Subtotal", formatCOP(data.subtotal))
+    if (data.tip > 0) row("Propina", formatCOP(data.tip))
+    y += 1
+    row("TOTAL", formatCOP(data.total), true)
+    y += 1
+    dashes()
+
+    row("Pago", METHOD_LABELS[data.paymentMethod] ?? data.paymentMethod)
+    if (data.receivedAmount != null && data.receivedAmount > 0)
+      row("Recibido", formatCOP(data.receivedAmount))
+    if (data.change != null && data.change > 0)
+      row("Cambio", formatCOP(data.change), true)
+    y += 1
+    dashes()
+
+    line("¡Gracias por tu compra!", "center")
+
+    doc.save(`recibo-${data.orderNumber}.pdf`)
+  }
+
   function handlePrint() {
     const content = document.getElementById("receipt-printable")
     if (!content) return
@@ -180,8 +257,12 @@ export function ReceiptModal({ open, onClose, data }: Props) {
           <p className="text-center text-muted-foreground pt-1">¡Gracias por tu compra!</p>
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-2 pt-2">
           <Button variant="outline" onClick={onClose} className="flex-1">Cerrar</Button>
+          <Button variant="outline" onClick={handleDownloadPDF} className="flex-1">
+            <FileDown className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
           <Button onClick={handlePrint} className="flex-1">
             <Printer className="mr-2 h-4 w-4" />
             Imprimir

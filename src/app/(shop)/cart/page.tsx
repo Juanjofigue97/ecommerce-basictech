@@ -10,12 +10,12 @@ import { useCartStore } from "@/stores/cart-store"
 export default function CartPage() {
   const { items, updateQuantity, removeItem } = useCartStore()
 
-  const handleUpdateQuantity = (productId: string, quantity: number) => {
-    updateQuantity(productId, quantity)
+  const handleUpdateQuantity = (productId: string, quantity: number, variantId?: string) => {
+    updateQuantity(productId, quantity, variantId)
   }
 
-  const handleRemove = (productId: string) => {
-    removeItem(productId)
+  const handleRemove = (productId: string, variantId?: string) => {
+    removeItem(productId, variantId)
   }
 
   if (items.length === 0) {
@@ -63,7 +63,7 @@ export default function CartPage() {
               <div className="divide-y">
                 {items.map((item) => (
                   <CartItem
-                    key={item.product.id}
+                    key={`${item.product.id}-${item.variantId ?? "base"}`}
                     item={item}
                     onUpdateQuantity={handleUpdateQuantity}
                     onRemove={handleRemove}

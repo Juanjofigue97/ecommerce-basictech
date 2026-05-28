@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useCashMovementsStore } from "@/stores/cash-movements-store"
+import { downloadExcel, type ExportColumn } from "@/lib/export"
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -53,6 +54,16 @@ export default function CashMovementsPage() {
     .filter((m) => m.type === "INCOME")
     .reduce((s, m) => s + m.amount, 0)
 
+  type MovementRow = typeof movements[number]
+  const exportColumns: ExportColumn<MovementRow>[] = [
+    { key: "createdAt",           label: "Fecha",         format: (v) => formatDate(String(v)) },
+    { key: "session.terminal.name", label: "Terminal" },
+    { key: "type",                label: "Tipo",          format: (v) => v === "EXPENSE" ? "Egreso" : "Ingreso" },
+    { key: "concept",             label: "Concepto" },
+    { key: "amount",              label: "Monto",         format: (v) => Number(v) },
+    { key: "user.name",           label: "Registrado por" },
+  ]
+
   async function handleDelete() {
     if (!deleteId) return
     setDeleting(true)
@@ -74,11 +85,20 @@ export default function CashMovementsPage() {
           <h1 className="text-2xl font-bold">Movimientos de Caja</h1>
           <p className="text-muted-foreground">Egresos e ingresos registrados en sesiones</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/cash-movements/new">
-            <Plus className="mr-2 h-4 w-4" />Nuevo Movimiento
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => downloadExcel({ filename: "movimientos", sheetName: "Movimientos de Caja", columns: exportColumns, data: movements })}
+            disabled={movements.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />Excel
+          </Button>
+          <Button asChild>
+            <Link href="/admin/cash-movements/new">
+              <Plus className="mr-2 h-4 w-4" />Nuevo Movimiento
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
