@@ -29,7 +29,7 @@ const schema = z.object({
   sessionId: z.string().min(1, "Selecciona una sesión"),
   userId: z.string().min(1, "Selecciona el responsable"),
   type: z.enum(["INCOME", "EXPENSE"], { error: "Selecciona el tipo" }),
-  amount: z.coerce.number().positive("El monto debe ser mayor a 0"),
+  amount: z.number().positive("El monto debe ser mayor a 0"),
   concept: z.string().min(1, "El concepto es requerido").max(200),
 })
 type FormData = z.infer<typeof schema>

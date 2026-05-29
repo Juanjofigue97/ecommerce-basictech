@@ -35,7 +35,7 @@ function formatDate(iso: string) {
 }
 
 const schema = z.object({
-  closingBalance: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
+  closingBalance: z.number().min(0, "Debe ser mayor o igual a 0"),
   observations: z.string().optional(),
 })
 type FormData = z.infer<typeof schema>

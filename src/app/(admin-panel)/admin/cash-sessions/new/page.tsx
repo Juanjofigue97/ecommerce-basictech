@@ -29,7 +29,7 @@ interface UserOption {
 const schema = z.object({
   terminalId: z.string().min(1, "Selecciona una terminal"),
   userId: z.string().min(1, "Selecciona el responsable"),
-  openingBalance: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
+  openingBalance: z.number().min(0, "Debe ser mayor o igual a 0"),
 })
 type FormData = z.infer<typeof schema>
 

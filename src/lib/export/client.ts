@@ -15,7 +15,7 @@ function triggerDownload(blob: Blob, filename: string) {
 /** Descarga un archivo .xlsx directamente desde el browser */
 export function downloadExcel<T>(config: ExportConfig<T>) {
   const buffer = buildExcelBuffer(config)
-  const blob = new Blob([buffer], {
+  const blob = new Blob([buffer as unknown as ArrayBuffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   })
   const filename = config.filename.endsWith(".xlsx")

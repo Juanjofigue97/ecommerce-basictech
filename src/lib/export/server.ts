@@ -8,7 +8,7 @@ export function excelResponse<T>(config: ExportConfig<T>): Response {
     ? config.filename
     : `${config.filename}.xlsx`
 
-  return new Response(buffer, {
+  return new Response(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

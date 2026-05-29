@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       orderNumber?: string
       paymentMethod?: string
       tip?: number
-      customer?: { name: string; email: string }
+      customer?: { name: string; email: string | null }
     }
 
     const salesEntries: CashFlowEntry[] = paymentsRaw.map((p) => ({

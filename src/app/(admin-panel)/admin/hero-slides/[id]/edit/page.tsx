@@ -48,7 +48,7 @@ export default function EditHeroSlidePage() {
   useEffect(() => {
     fetch(`/api/admin/hero-slides`)
       .then((r) => r.json())
-      .then((slides: FormData & { id: string }[]) => {
+      .then((slides: (FormData & { id: string })[]) => {
         const slide = slides.find((s) => s.id === id)
         if (slide) {
           reset({

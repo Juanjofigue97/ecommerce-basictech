@@ -1,9 +1,6 @@
-"use client"
-
 import Link from "next/link"
-import { ChevronRight, LucideIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { usePathname } from "next/navigation"
+import { ChevronRight, type LucideIcon } from "lucide-react"
+import { InfoNavLinks } from "./InfoNavLinks"
 
 interface NavLink {
   name: string
@@ -27,8 +24,6 @@ export function InfoPageLayout({
   navLinks,
   children,
 }: InfoPageLayoutProps) {
-  const pathname = usePathname()
-
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -62,22 +57,7 @@ export function InfoPageLayout({
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {category}
             </p>
-            <nav className="flex flex-col gap-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "rounded-md px-3 py-2 text-sm transition-colors",
-                    pathname === link.href
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
+            <InfoNavLinks links={navLinks} />
           </aside>
 
           {/* Main */}
