@@ -2,6 +2,8 @@ import { Suspense } from "react"
 import { prisma } from "@/lib/prisma"
 import { LoginForm } from "@/components/auth/LoginForm"
 
+export const dynamic = "force-dynamic"
+
 export default async function LoginPage() {
   const settings = await prisma.storeSettings.findUnique({ where: { id: "singleton" } })
 
