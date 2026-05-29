@@ -23,7 +23,7 @@ export function ProductGrid({
     <div>
       {/* View Mode Toggle */}
       {onViewModeChange && (
-        <div className="mb-4 flex justify-end gap-1">
+        <div className="mb-4 hidden justify-end gap-1 sm:flex">
           <Button
             variant={viewMode === "grid" ? "default" : "ghost"}
             size="icon"
@@ -50,7 +50,7 @@ export function ProductGrid({
         <div
           className={
             viewMode === "grid"
-              ? "grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
               : "flex flex-col gap-4"
           }
         >
@@ -73,7 +73,7 @@ export function ProductGrid({
         <div
           className={
             viewMode === "grid"
-              ? "grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
               : "flex flex-col gap-4"
           }
         >

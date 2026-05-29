@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState, useCallback } from "react"
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import {
   Breadcrumb,
@@ -10,6 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { Button } from "@/components/ui/button"
 import { FilterSidebar } from "@/components/products/FilterSidebar"
 import { FilterMobile } from "@/components/products/FilterMobile"
 import { ProductGrid } from "@/components/products/ProductGrid"
@@ -18,23 +19,19 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useProductsStore } from "@/stores/products-store"
 import { FilterState } from "@/types"
 
+
 function ProductsContent() {
   const searchParams = useSearchParams()
-  const { products, loading, filters, setFilters, fetchProducts, fetchCategories, fetchBrands } = useProductsStore()
+  const { products, loading, filters, setFilters, resetFilters, fetchProducts, fetchCategories, fetchBrands } = useProductsStore()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
-  // Initialize filters from URL params
   useEffect(() => {
     const category = searchParams.get("category")
-    const featured = searchParams.get("featured")
+    const search = searchParams.get("search")
 
     const initialFilters: Partial<FilterState> = {}
-    if (category) {
-      initialFilters.categories = [category]
-    }
-    if (featured === "true") {
-      // This will be handled in the API call
-    }
+    if (category) initialFilters.categories = [category]
+    if (search) initialFilters.search = search
 
     if (Object.keys(initialFilters).length > 0) {
       setFilters(initialFilters)
@@ -44,7 +41,6 @@ function ProductsContent() {
     fetchBrands()
   }, [searchParams, setFilters, fetchCategories, fetchBrands])
 
-  // Fetch products when filters change
   useEffect(() => {
     fetchProducts()
   }, [filters, fetchProducts])
@@ -53,15 +49,29 @@ function ProductsContent() {
     setFilters(newFilters)
   }, [setFilters])
 
+  function clearFilters() {
+    resetFilters()
+  }
+
   const activeFilterCount =
     filters.brands.length +
     filters.categories.length +
     (filters.priceRange[0] > 0 || filters.priceRange[1] < 5_000_000 ? 1 : 0) +
     Object.values(filters.attributeValues).reduce((s, ids) => s + ids.length, 0)
 
+  // Derive available facets from the currently loaded (filtered) products
+  const facetCounts = useMemo(() => {
+    const categories: Record<string, number> = {}
+    const brands: Record<string, number> = {}
+    for (const p of products) {
+      categories[p.category] = (categories[p.category] ?? 0) + 1
+      brands[p.brand] = (brands[p.brand] ?? 0) + 1
+    }
+    return { categories, brands }
+  }, [products])
+
   return (
     <div className="container mx-auto px-4 py-6">
-      {/* Breadcrumb */}
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -74,7 +84,6 @@ function ProductsContent() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Results count and controls */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Todos los Productos</h1>
@@ -83,12 +92,20 @@ function ProductsContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <FilterMobile
             filters={filters}
             onFiltersChange={handleFiltersChange}
             activeFilterCount={activeFilterCount}
+            productCount={products.length}
+            facetCounts={facetCounts}
+            onClearFilters={clearFilters}
           />
+          {activeFilterCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground lg:hidden">
+              Limpiar
+            </Button>
+          )}
           <SortSelect
             value={filters.sortBy}
             onChange={(sortBy) =>
@@ -98,16 +115,17 @@ function ProductsContent() {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex gap-8">
-        {/* Sidebar - Desktop */}
         <aside className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-24">
-            <FilterSidebar filters={filters} onFiltersChange={handleFiltersChange} />
+            <FilterSidebar
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              facetCounts={facetCounts}
+            />
           </div>
         </aside>
 
-        {/* Products */}
         <div className="flex-1">
           <ProductGrid
             products={products}
@@ -136,7 +154,7 @@ function ProductsPageSkeleton() {
           <Skeleton className="h-96" />
         </aside>
         <div className="flex-1">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-3">
                 <Skeleton className="aspect-square rounded-lg" />

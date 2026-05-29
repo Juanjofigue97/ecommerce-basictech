@@ -262,8 +262,61 @@ export default function AdminProductsPage() {
         </Select>
       </div>
 
-      {/* Table */}
-      <Card>
+      {/* Mobile Cards */}
+      {!loading && (
+        <div className="sm:hidden space-y-3">
+          {filteredProducts.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">No se encontraron productos</p>
+          ) : (
+            filteredProducts.map((product) => (
+              <Card key={product.id}>
+                <CardContent className="p-4">
+                  <div className="flex gap-3">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                      {product.images[0] && (
+                        <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.brand} · {product.category}</p>
+                      <p className="mt-1 font-semibold text-sm">{formatPrice(product.price)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex gap-1 flex-wrap">
+                      {product.variants && product.variants.length > 0 ? (
+                        product.variants.every((v) => v.stock === 0) ? (
+                          <Badge variant="destructive">Agotado</Badge>
+                        ) : (
+                          <Badge className="bg-green-600 text-white">En stock</Badge>
+                        )
+                      ) : product.stock > 0 ? (
+                        <Badge className="bg-green-600 text-white">En stock · {product.stock}</Badge>
+                      ) : (
+                        <Badge variant="destructive">Agotado</Badge>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <Link href={`/admin/products/${product.id}/edit`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(product.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Desktop Table */}
+      <Card className="hidden sm:block">
         <CardContent className="p-0">
           {loading ? (
             <ProductsSkeleton />

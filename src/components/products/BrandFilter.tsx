@@ -11,9 +11,10 @@ interface BrandFilterProps {
   brands: Brand[]
   selectedBrands: string[]
   onBrandsChange: (brands: string[]) => void
+  counts?: Record<string, number>
 }
 
-export function BrandFilter({ brands, selectedBrands, onBrandsChange }: BrandFilterProps) {
+export function BrandFilter({ brands, selectedBrands, onBrandsChange, counts }: BrandFilterProps) {
   const [isOpen, setIsOpen] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -21,11 +22,11 @@ export function BrandFilter({ brands, selectedBrands, onBrandsChange }: BrandFil
     b.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  function toggle(slug: string) {
-    if (selectedBrands.includes(slug)) {
-      onBrandsChange(selectedBrands.filter((b) => b !== slug))
+  function toggle(name: string) {
+    if (selectedBrands.includes(name)) {
+      onBrandsChange(selectedBrands.filter((b) => b !== name))
     } else {
-      onBrandsChange([...selectedBrands, slug])
+      onBrandsChange([...selectedBrands, name])
     }
   }
 
@@ -54,22 +55,29 @@ export function BrandFilter({ brands, selectedBrands, onBrandsChange }: BrandFil
             </div>
           )}
           <div className="max-h-48 space-y-2 overflow-y-auto">
-            {filtered.map((brand) => (
-              <div key={brand.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`brand-${brand.id}`}
-                  checked={selectedBrands.includes(brand.name)}
-                  onCheckedChange={() => toggle(brand.name)}
-                />
-                <Label
-                  htmlFor={`brand-${brand.id}`}
-                  className="flex flex-1 cursor-pointer items-center justify-between text-sm font-normal"
-                >
-                  <span>{brand.name}</span>
-                  <span className="text-xs text-muted-foreground">{brand.productCount}</span>
-                </Label>
-              </div>
-            ))}
+            {filtered.map((brand) => {
+              const selected = selectedBrands.includes(brand.name)
+              const count = counts ? (counts[brand.name] ?? 0) : brand.productCount
+              const disabled = !selected && counts !== undefined && count === 0
+
+              return (
+                <div key={brand.id} className={`flex items-center space-x-2 ${disabled ? "opacity-40" : ""}`}>
+                  <Checkbox
+                    id={`brand-${brand.id}`}
+                    checked={selected}
+                    disabled={disabled}
+                    onCheckedChange={() => toggle(brand.name)}
+                  />
+                  <Label
+                    htmlFor={`brand-${brand.id}`}
+                    className={`flex flex-1 items-center justify-between text-sm font-normal ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+                  >
+                    <span>{brand.name}</span>
+                    <span className="text-xs text-muted-foreground">{count}</span>
+                  </Label>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, UserPlus, MoreHorizontal, Mail, Ban, Eye } from "lucide-react"
+import { Search, UserPlus, MoreHorizontal, Ban, Eye, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +31,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useAdminStore } from "@/stores/admin-store"
 import { useRolesStore } from "@/stores/roles-store"
 import { useCurrency } from "@/hooks/use-currency"
@@ -91,6 +101,30 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [roleFilter, setRoleFilter] = useState("all")
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleToggleSuspend(userId: string, currentStatus: string) {
+    const newStatus = currentStatus === "suspended" ? "active" : "suspended"
+    await fetch(`/api/users/${userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    })
+    fetchUsers()
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return
+    setDeleting(true)
+    try {
+      await fetch(`/api/users/${deleteId}`, { method: "DELETE" })
+      fetchUsers()
+      setDeleteId(null)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   useEffect(() => {
     fetchUsers()
@@ -210,10 +244,74 @@ export default function AdminUsersPage() {
         </Select>
       </div>
 
+      {/* Mobile Cards */}
+      {!loading && (
+        <div className="sm:hidden space-y-3">
+          {filteredUsers.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">No se encontraron usuarios</p>
+          ) : (
+            filteredUsers.map((user) => {
+              const status = statusConfig[user.status as keyof typeof statusConfig] || statusConfig.active
+              return (
+                <Card key={user.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9 shrink-0">
+                        <AvatarFallback>{user.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{user.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      <Badge variant={status.variant} className={`shrink-0 ${status.className}`}>
+                        {status.label}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex gap-2">
+                        {user.roleName ? (
+                          <Badge variant="default">{user.roleName}</Badge>
+                        ) : (
+                          <Badge variant="outline">Cliente</Badge>
+                        )}
+                      </div>
+                      <span className="text-muted-foreground">{user.orders} pedido{user.orders !== 1 ? "s" : ""} · {formatPrice(user.totalSpent)}</span>
+                    </div>
+                    <div className="flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4 mr-1" />Acciones
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/users/${user.id}/edit`}><Eye className="mr-2 h-4 w-4" />Ver / Editar</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleToggleSuspend(user.id, user.status)}>
+                            <Ban className="mr-2 h-4 w-4" />
+                            {user.status !== "suspended" ? "Suspender" : "Reactivar"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(user.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
+        </div>
+      )}
+
+      {/* Desktop Table */}
       {loading && users.length === 0 ? (
         <UsersSkeleton />
       ) : (
-        <Card>
+        <Card className="hidden sm:block">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -277,25 +375,19 @@ export default function AdminUsersPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver perfil
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Mail className="mr-2 h-4 w-4" />
-                                Enviar email
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/users/${user.id}/edit`}>
+                                  <Eye className="mr-2 h-4 w-4" />Ver / Editar
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {user.status !== "suspended" ? (
-                                <DropdownMenuItem className="text-destructive">
-                                  <Ban className="mr-2 h-4 w-4" />
-                                  Suspender
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem>
-                                  Reactivar cuenta
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem onClick={() => handleToggleSuspend(user.id, user.status)}>
+                                <Ban className="mr-2 h-4 w-4" />
+                                {user.status !== "suspended" ? "Suspender" : "Reactivar"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(user.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" />Eliminar
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -308,6 +400,27 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

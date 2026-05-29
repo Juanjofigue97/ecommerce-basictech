@@ -196,8 +196,49 @@ export default function AdminCategoriesPage() {
         />
       </div>
 
-      {/* Table */}
-      <Card>
+      {/* Mobile Cards */}
+      {!loading && (
+        <div className="sm:hidden space-y-3">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">
+              {searchQuery ? "No se encontraron categorías" : "No hay categorías aún"}
+            </p>
+          ) : (
+            filtered.map((category) => (
+              <Card key={category.id}>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <DynamicIcon name={category.icon} className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{category.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{category.slug}</p>
+                  </div>
+                  <Badge variant={category.productCount > 0 ? "default" : "outline"} className="shrink-0">
+                    {category.productCount}
+                  </Badge>
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                      <Link href={`/admin/categories/${category.id}/edit`}>
+                        <Pencil className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => { setDeleteError(null); setDeleteId(category.id) }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Desktop Table */}
+      <Card className="hidden sm:block">
         <CardContent className="p-0">
           {loading ? (
             <CategoriesSkeleton />

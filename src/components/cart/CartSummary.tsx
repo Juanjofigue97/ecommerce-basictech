@@ -3,7 +3,6 @@
 import { Truck } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { CartItem } from "@/types"
-import { CheckoutButton } from "./CheckoutButton"
 import { WhatsAppOrderButton } from "./WhatsAppOrderButton"
 import { useCurrency } from "@/hooks/use-currency"
 
@@ -52,13 +51,13 @@ export function CartSummary({ items }: CartSummaryProps) {
       </div>
 
       <div className="mt-6 space-y-3">
-        <CheckoutButton />
+        {/* <CheckoutButton /> */}
         <WhatsAppOrderButton />
       </div>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
+      {/* <p className="mt-4 text-center text-xs text-muted-foreground">
         Pago seguro con Wompi. Impuestos incluidos.
-      </p>
+      </p> */}
     </div>
   )
 }

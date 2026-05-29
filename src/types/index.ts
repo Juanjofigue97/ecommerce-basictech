@@ -55,4 +55,5 @@ export interface FilterState {
   sortBy: 'popular' | 'price-asc' | 'price-desc' | 'newest' | 'rating'
   // attributeId -> selected valueIds (AND between attributes, OR within)
   attributeValues: Record<string, string[]>
+  search?: string
 }

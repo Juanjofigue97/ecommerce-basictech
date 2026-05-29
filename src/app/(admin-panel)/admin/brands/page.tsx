@@ -88,8 +88,48 @@ export default function AdminBrandsPage() {
         />
       </div>
 
+      {/* Mobile Cards */}
+      {!loading && (
+        <div className="sm:hidden space-y-3">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">No se encontraron marcas</p>
+          ) : (
+            filtered.map((brand) => (
+              <Card key={brand.id}>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <Tag className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{brand.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{brand.slug}</p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0">
+                    {brand.productCount}
+                  </Badge>
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                      <Link href={`/admin/brands/${brand.id}/edit`}>
+                        <Pencil className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => { setDeleteId(brand.id); setDeleteError("") }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Desktop Table */}
       {loading && brands.length === 0 ? (
-        <Card><CardContent className="p-0">
+        <Card className="hidden sm:block"><CardContent className="p-0">
           <Table><TableHeader><TableRow>
             {["Nombre", "Slug", "Productos", ""].map((h) => <TableHead key={h}>{h}</TableHead>)}
           </TableRow></TableHeader>
@@ -102,7 +142,7 @@ export default function AdminBrandsPage() {
           </TableBody></Table>
         </CardContent></Card>
       ) : (
-        <Card>
+        <Card className="hidden sm:block">
           <CardContent className="p-0">
             <Table>
               <TableHeader>

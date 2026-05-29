@@ -10,9 +10,10 @@ interface CategoryFilterProps {
   categories: Category[]
   selectedCategories: string[]
   onCategoriesChange: (categories: string[]) => void
+  counts?: Record<string, number>
 }
 
-export function CategoryFilter({ categories, selectedCategories, onCategoriesChange }: CategoryFilterProps) {
+export function CategoryFilter({ categories, selectedCategories, onCategoriesChange, counts }: CategoryFilterProps) {
   const [isOpen, setIsOpen] = useState(true)
 
   function toggle(slug: string) {
@@ -35,22 +36,29 @@ export function CategoryFilter({ categories, selectedCategories, onCategoriesCha
 
       {isOpen && (
         <div className="mt-2 space-y-2">
-          {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`cat-${cat.id}`}
-                checked={selectedCategories.includes(cat.slug)}
-                onCheckedChange={() => toggle(cat.slug)}
-              />
-              <Label
-                htmlFor={`cat-${cat.id}`}
-                className="flex flex-1 cursor-pointer items-center justify-between text-sm font-normal"
-              >
-                <span>{cat.name}</span>
-                <span className="text-xs text-muted-foreground">{cat.productCount}</span>
-              </Label>
-            </div>
-          ))}
+          {categories.map((cat) => {
+            const selected = selectedCategories.includes(cat.slug)
+            const count = counts ? (counts[cat.slug] ?? 0) : cat.productCount
+            const disabled = !selected && counts !== undefined && count === 0
+
+            return (
+              <div key={cat.id} className={`flex items-center space-x-2 ${disabled ? "opacity-40" : ""}`}>
+                <Checkbox
+                  id={`cat-${cat.id}`}
+                  checked={selected}
+                  disabled={disabled}
+                  onCheckedChange={() => toggle(cat.slug)}
+                />
+                <Label
+                  htmlFor={`cat-${cat.id}`}
+                  className={`flex flex-1 items-center justify-between text-sm font-normal ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <span>{cat.name}</span>
+                  <span className="text-xs text-muted-foreground">{count}</span>
+                </Label>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

@@ -179,8 +179,11 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefono</Label>
-                    <Input id="phone" {...register("phone")} />
+                    <Label htmlFor="phone">Telefono / WhatsApp</Label>
+                    <Input id="phone" placeholder="+57 300 000 0000" {...register("phone")} />
+                    <p className="text-xs text-muted-foreground">
+                      Este numero recibe los pedidos enviados por WhatsApp desde el carrito.
+                    </p>
                     {errors.phone && (
                       <p className="text-sm text-destructive">{errors.phone.message}</p>
                     )}

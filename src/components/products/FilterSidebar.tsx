@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BrandFilter } from "./BrandFilter"
@@ -13,16 +13,36 @@ import { useProductsStore } from "@/stores/products-store"
 interface AttributeValue { id: string; value: string }
 interface CategoryAttribute { id: string; name: string; slug: string; values: AttributeValue[] }
 
+interface FacetCounts {
+  categories: Record<string, number>
+  brands: Record<string, number>
+}
+
 interface FilterSidebarProps {
   filters: FilterState
   onFiltersChange: (filters: FilterState) => void
+  facetCounts?: FacetCounts
+  hideClearButton?: boolean
 }
 
-export function FilterSidebar({ filters, onFiltersChange }: FilterSidebarProps) {
-  const { categories, brands } = useProductsStore()
+export function FilterSidebar({ filters, onFiltersChange, facetCounts, hideClearButton }: FilterSidebarProps) {
+  const { categories, brands, products } = useProductsStore()
+
+  // Derive which attribute values are actually present in the filtered products
+  const availableAttrValues = useMemo(() => {
+    const map: Record<string, Set<string>> = {}
+    for (const p of products) {
+      for (const v of p.variants ?? []) {
+        for (const val of v.values ?? []) {
+          if (!map[val.attrName]) map[val.attrName] = new Set()
+          map[val.attrName].add(val.value)
+        }
+      }
+    }
+    return map
+  }, [products])
   const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([])
 
-  // When a single category is selected, load its attributes
   useEffect(() => {
     if (filters.categories.length !== 1) {
       setCategoryAttributes([])
@@ -61,43 +81,46 @@ export function FilterSidebar({ filters, onFiltersChange }: FilterSidebarProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Filtros</h2>
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="h-auto p-0 text-sm text-primary hover:text-primary/80"
-          >
-            Limpiar
-            <X className="ml-1 h-3 w-3" />
-          </Button>
-        )}
-      </div>
+      {!hideClearButton && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Filtros</h2>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="h-auto p-0 text-sm text-primary hover:text-primary/80"
+            >
+              Limpiar
+              <X className="ml-1 h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      )}
 
       <CategoryFilter
         categories={categories}
         selectedCategories={filters.categories}
-        onCategoriesChange={(cats) => {
-          // Clear attribute values when category changes
+        counts={facetCounts?.categories}
+        onCategoriesChange={(cats) =>
           onFiltersChange({ ...filters, categories: cats, attributeValues: {} })
-        }}
+        }
       />
 
-      {/* Dynamic attribute filters — shown only when one category is selected */}
       {categoryAttributes.map((attr) => (
         <AttributeFilter
           key={attr.id}
           attribute={attr}
           selectedValueIds={filters.attributeValues[attr.id] ?? []}
           onValuesChange={(valueIds) => setAttributeValues(attr.id, valueIds)}
+          availableValues={availableAttrValues[attr.name]}
         />
       ))}
 
       <BrandFilter
         brands={brands}
         selectedBrands={filters.brands}
+        counts={facetCounts?.brands}
         onBrandsChange={(b) => onFiltersChange({ ...filters, brands: b })}
       />
 

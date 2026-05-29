@@ -12,9 +12,10 @@ interface AttributeFilterProps {
   attribute: { id: string; name: string; values: AttributeValue[] }
   selectedValueIds: string[]
   onValuesChange: (valueIds: string[]) => void
+  availableValues?: Set<string>
 }
 
-export function AttributeFilter({ attribute, selectedValueIds, onValuesChange }: AttributeFilterProps) {
+export function AttributeFilter({ attribute, selectedValueIds, onValuesChange, availableValues }: AttributeFilterProps) {
   const [isOpen, setIsOpen] = useState(true)
 
   function toggle(valueId: string) {
@@ -25,7 +26,12 @@ export function AttributeFilter({ attribute, selectedValueIds, onValuesChange }:
     }
   }
 
-  if (attribute.values.length === 0) return null
+  // If availableValues is provided, only show values that are either selected or available
+  const visibleValues = availableValues
+    ? attribute.values.filter((v) => selectedValueIds.includes(v.id) || availableValues.has(v.value))
+    : attribute.values
+
+  if (visibleValues.length === 0) return null
 
   return (
     <div className="border-b pb-4">
@@ -39,7 +45,7 @@ export function AttributeFilter({ attribute, selectedValueIds, onValuesChange }:
 
       {isOpen && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {attribute.values.map((val) => {
+          {visibleValues.map((val) => {
             const selected = selectedValueIds.includes(val.id)
             return (
               <button

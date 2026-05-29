@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Menu, Monitor, Keyboard, Mouse, Headphones, HardDrive, Cpu, User, Heart, Package } from "lucide-react"
+import { Menu, Monitor, Keyboard, Mouse, Headphones, HardDrive, Cpu, Gamepad2, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -12,19 +12,27 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useProductsStore } from "@/stores/products-store"
 
-const categories = [
-  { name: "Computadoras", href: "/products?category=computadoras", icon: Monitor },
-  { name: "Monitores", href: "/products?category=monitores", icon: Monitor },
-  { name: "Teclados", href: "/products?category=teclados", icon: Keyboard },
-  { name: "Mouse", href: "/products?category=mouse", icon: Mouse },
-  { name: "Audifonos", href: "/products?category=audifonos", icon: Headphones },
-  { name: "Almacenamiento", href: "/products?category=almacenamiento", icon: HardDrive },
-  { name: "Componentes", href: "/products?category=componentes", icon: Cpu },
-]
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Monitor,
+  Keyboard,
+  Mouse,
+  Headphones,
+  HardDrive,
+  Cpu,
+  Gamepad2,
+  Package,
+}
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false)
+  const { categories, fetchCategories } = useProductsStore()
+
+  React.useEffect(() => {
+    fetchCategories()
+  }, [fetchCategories])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -39,52 +47,29 @@ export function MobileNav() {
           <SheetTitle className="text-left">Menu</SheetTitle>
         </SheetHeader>
         <div className="mt-6 flex flex-col gap-4">
-          {/* User Actions */}
-          <div className="flex flex-col gap-2">
-            <Link
-              href="/account"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-            >
-              <User className="h-4 w-4" />
-              Mi Cuenta
-            </Link>
-            <Link
-              href="/favorites"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-            >
-              <Heart className="h-4 w-4" />
-              Favoritos
-            </Link>
-            <Link
-              href="/orders"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-            >
-              <Package className="h-4 w-4" />
-              Mis Pedidos
-            </Link>
-          </div>
-
-          <Separator />
-
           {/* Categories */}
           <div className="flex flex-col gap-1">
             <p className="px-3 text-xs font-semibold uppercase text-muted-foreground">
               Categorias
             </p>
-            {categories.map((category) => (
-              <Link
-                key={category.name}
-                href={category.href}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-              >
-                <category.icon className="h-4 w-4" />
-                {category.name}
-              </Link>
-            ))}
+            {categories.length === 0
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="mx-3 h-9 rounded-lg" />
+                ))
+              : categories.map((category) => {
+                  const Icon = iconMap[category.icon] ?? Package
+                  return (
+                    <Link
+                      key={category.id}
+                      href={`/products?category=${category.slug}`}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
+                    >
+                      <Icon className="h-4 w-4" />
+                      {category.name}
+                    </Link>
+                  )
+                })}
           </div>
 
           <Separator />

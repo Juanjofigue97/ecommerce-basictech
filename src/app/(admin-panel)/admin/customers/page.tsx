@@ -179,10 +179,58 @@ export default function AdminCustomersPage() {
         </Select>
       </div>
 
+      {/* Mobile Cards */}
+      {!loading && (
+        <div className="sm:hidden space-y-3">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">No se encontraron clientes</p>
+          ) : (
+            filtered.map((customer) => {
+              const status = statusConfig[customer.status as keyof typeof statusConfig] ?? statusConfig.ACTIVE
+              return (
+                <Card key={customer.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{customer.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{customer.email ?? customer.phone ?? "—"}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Badge className={status.className}>{status.label}</Badge>
+                        <Badge variant="outline">{sourceLabels[customer.source] ?? customer.source}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{customer._count.orders} pedido{customer._count.orders !== 1 ? "s" : ""}</span>
+                      <span>{new Date(customer.createdAt).toLocaleDateString("es-CO")}</span>
+                    </div>
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <Link href={`/admin/customers/${customer.id}/edit`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                        disabled={customer._count.orders > 0}
+                        onClick={() => setDeleteId(customer.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
+        </div>
+      )}
+
+      {/* Desktop Table */}
       {loading && customers.length === 0 ? (
         <TableSkeleton />
       ) : (
-        <Card>
+        <Card className="hidden sm:block">
           <CardContent className="p-0">
             <Table>
               <TableHeader>

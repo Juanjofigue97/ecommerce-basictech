@@ -3,17 +3,21 @@
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Search, ShoppingCart, Heart } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "./ThemeToggle"
-import { MobileNav } from "./MobileNav"
+import { SearchBar } from "./SearchBar"
 import { useCartStore } from "@/stores/cart-store"
 import { useSettingsStore } from "@/stores/settings-store"
 
 const AuthSection = dynamic(
   () => import("./AuthSection").then((m) => m.AuthSection),
+  { ssr: false }
+)
+
+const MobileNav = dynamic(
+  () => import("./MobileNav").then((m) => m.MobileNav),
   { ssr: false }
 )
 
@@ -44,16 +48,9 @@ export function Header() {
           </Link>
 
           {/* Search Bar - Desktop */}
-          {/* <div className="hidden flex-1 max-w-xl md:flex">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar productos..."
-                className="w-full pl-10 pr-4"
-              />
-            </div>
-          </div> */}
+          <div className="hidden flex-1 max-w-xl md:flex">
+            <SearchBar className="w-full" />
+          </div>
 
           {/* Actions */}
           <div className="flex items-center gap-1">
@@ -101,14 +98,7 @@ export function Header() {
 
         {/* Search Bar - Mobile */}
         <div className="pb-3 md:hidden">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar productos..."
-              className="w-full pl-10 pr-4"
-            />
-          </div>
+          <SearchBar className="w-full" />
         </div>
       </div>
     </header>

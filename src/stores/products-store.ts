@@ -46,6 +46,7 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
       if (filters.priceRange[0] > 0) params.set("minPrice", filters.priceRange[0].toString())
       if (filters.priceRange[1] < 10000) params.set("maxPrice", filters.priceRange[1].toString())
       if (filters.sortBy) params.set("sortBy", filters.sortBy)
+      if (filters.search) params.set("search", filters.search)
 
       // Pass selected attribute value IDs grouped by attribute
       // Format: avGroup=attrId:valueId1,valueId2 (one param per attribute)
