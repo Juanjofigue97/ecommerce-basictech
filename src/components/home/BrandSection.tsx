@@ -1,20 +1,25 @@
+import { unstable_cache } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { transformBrand } from "@/lib/transformers"
 import Image from "next/image"
 
-async function getBrands() {
-  try {
-    const brands = await prisma.brand.findMany({
-      where: { products: { some: { isActive: true } } },
-      include: { _count: { select: { products: { where: { isActive: true } } } } },
-      orderBy: { name: "asc" },
-      take: 8,
-    })
-    return brands.map(transformBrand)
-  } catch {
-    return []
-  }
-}
+const getBrands = unstable_cache(
+  async () => {
+    try {
+      const brands = await prisma.brand.findMany({
+        where: { products: { some: { isActive: true } } },
+        include: { _count: { select: { products: { where: { isActive: true } } } } },
+        orderBy: { name: "asc" },
+        take: 8,
+      })
+      return brands.map(transformBrand)
+    } catch {
+      return []
+    }
+  },
+  ["brands-section"],
+  { revalidate: 300, tags: ["brands"] }
+)
 
 export async function BrandSection() {
   const brands = await getBrands()

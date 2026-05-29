@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { unstable_cache } from "next/cache"
 import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { prisma } from "@/lib/prisma"
@@ -22,25 +23,29 @@ const legalLinks = [
   { name: "Cookies", href: "/cookies" },
 ]
 
-async function getFooterData() {
-  try {
-    const [settings, categories] = await Promise.all([
-      prisma.storeSettings.findUnique({ where: { id: "singleton" } }),
-      prisma.category.findMany({
-        where: { products: { some: { isActive: true } } },
-        include: { _count: { select: { products: { where: { isActive: true } } } } },
-        orderBy: { name: "asc" },
-        take: 6,
-      }),
-    ])
-    return {
-      settings,
-      categories: categories.map(transformCategory),
+const getFooterData = unstable_cache(
+  async () => {
+    try {
+      const [settings, categories] = await Promise.all([
+        prisma.storeSettings.findUnique({ where: { id: "singleton" } }),
+        prisma.category.findMany({
+          where: { products: { some: { isActive: true } } },
+          include: { _count: { select: { products: { where: { isActive: true } } } } },
+          orderBy: { name: "asc" },
+          take: 6,
+        }),
+      ])
+      return {
+        settings,
+        categories: categories.map(transformCategory),
+      }
+    } catch {
+      return { settings: null, categories: [] }
     }
-  } catch {
-    return { settings: null, categories: [] }
-  }
-}
+  },
+  ["footer-data"],
+  { revalidate: 3600, tags: ["store-settings", "categories"] }
+)
 
 export async function Footer() {
   const { settings, categories } = await getFooterData()
