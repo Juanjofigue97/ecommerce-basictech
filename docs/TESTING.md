@@ -7,9 +7,11 @@
 | `vitest` | 4.1.7 | Runner de tests |
 | `vite-tsconfig-paths` | 6.1.1 | Resuelve alias `@/*` en los tests |
 
+> Todas las rutas `src/...` de este documento son relativas al workspace `apps/web/` (es decir, `src/__tests__/...` = `apps/web/src/__tests__/...`).
+
 ### Configuración
 
-**`vitest.config.ts`** (raíz del proyecto):
+**`apps/web/vitest.config.ts`** (el proyecto es un monorepo; este archivo vive dentro del workspace `apps/web`):
 
 ```ts
 import { defineConfig } from "vitest/config"
@@ -27,10 +29,19 @@ export default defineConfig({
 
 ### Comandos
 
+Desde la raíz del monorepo (los scripts delegan al workspace `apps/web`):
+
 ```bash
-npm test          # corre todos los tests una vez
-npm test -- --watch   # modo watch
-npm test -- --run src/__tests__/lib/export/builder.test.ts  # un archivo
+npm test              # corre todos los tests una vez (apps/web)
+npm run test:watch    # modo watch (apps/web)
+```
+
+Para correr un archivo puntual o pasar flags de Vitest, ejecutar dentro de `apps/web` o usar `-w`:
+
+```bash
+cd apps/web && npx vitest run src/__tests__/lib/export/builder.test.ts
+# o desde la raíz:
+npm test -w apps/web -- --run src/__tests__/lib/export/builder.test.ts
 ```
 
 ---
@@ -278,7 +289,7 @@ Vitest (como Jest) hace hoisting de las llamadas a `vi.mock(...)` al inicio del 
 ## Estructura de archivos
 
 ```
-src/
+apps/web/src/
 └── __tests__/
     ├── lib/
     │   └── export/
