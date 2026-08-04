@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
+import Image from "next/image"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -37,11 +38,17 @@ export function Header() {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">
-                {settings?.name ? settings.name.slice(0, 2).toUpperCase() : "BT"}
-              </span>
-            </div>
+            {settings?.logo ? (
+              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg">
+                <Image src={settings.logo} alt={settings.name ?? "Logo"} fill className="object-contain" />
+              </div>
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <span className="text-sm font-bold text-primary-foreground">
+                  {settings?.name ? settings.name.slice(0, 2).toUpperCase() : "BT"}
+                </span>
+              </div>
+            )}
             <span className="hidden text-xl font-bold sm:inline-block">
               {settings?.name ?? "BasicTechShop"}
             </span>

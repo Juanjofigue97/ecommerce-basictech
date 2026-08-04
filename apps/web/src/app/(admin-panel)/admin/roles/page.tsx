@@ -60,6 +60,7 @@ function RolesSkeleton() {
 export default function RolesPage() {
   const { roles, loading, fetchRoles, deleteRole } = useRolesStore()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState("")
 
   useEffect(() => {
     fetchRoles()
@@ -67,10 +68,11 @@ export default function RolesPage() {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
+    setDeleteError("")
     try {
       await deleteRole(id)
-    } catch {
-      // error shown via store
+    } catch (err) {
+      setDeleteError((err as Error).message)
     } finally {
       setDeletingId(null)
     }
@@ -92,6 +94,8 @@ export default function RolesPage() {
           </Link>
         </Button>
       </div>
+
+      {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
 
       {loading && roles.length === 0 ? (
         <RolesSkeleton />

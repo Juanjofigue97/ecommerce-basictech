@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { transformProduct } from "@/lib/transformers"
+import { requireAdmin } from "@/lib/api-auth"
 
 type Params = Promise<{ id: string }>
 
@@ -87,6 +88,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Params }
 ) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
     const body = await request.json()
@@ -224,6 +228,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Params }
 ) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
     await prisma.product.delete({ where: { id } })

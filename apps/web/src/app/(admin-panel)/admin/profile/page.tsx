@@ -36,7 +36,9 @@ export default function AdminProfilePage() {
   const [saving, setSaving] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
   const [successMsg, setSuccessMsg] = useState("")
+  const [errorMsg, setErrorMsg] = useState("")
   const [passwordMsg, setPasswordMsg] = useState("")
+  const [passwordErrorMsg, setPasswordErrorMsg] = useState("")
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -64,13 +66,20 @@ export default function AdminProfilePage() {
     if (!session?.user?.id) return
     setSaving(true)
     setSuccessMsg("")
+    setErrorMsg("")
     try {
       const res = await fetch(`/api/users/${session.user.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (res.ok) setSuccessMsg("Perfil actualizado correctamente")
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al actualizar el perfil")
+      }
+      setSuccessMsg("Perfil actualizado correctamente")
+    } catch (err) {
+      setErrorMsg((err as Error).message)
     } finally {
       setSaving(false)
     }
@@ -80,16 +89,21 @@ export default function AdminProfilePage() {
     if (!session?.user?.id) return
     setSavingPassword(true)
     setPasswordMsg("")
+    setPasswordErrorMsg("")
     try {
       const res = await fetch(`/api/users/${session.user.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: data.password }),
       })
-      if (res.ok) {
-        setPasswordMsg("Contraseña actualizada")
-        resetPwd()
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al actualizar la contraseña")
       }
+      setPasswordMsg("Contraseña actualizada")
+      resetPwd()
+    } catch (err) {
+      setPasswordErrorMsg((err as Error).message)
     } finally {
       setSavingPassword(false)
     }
@@ -146,6 +160,7 @@ export default function AdminProfilePage() {
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             {successMsg && <p className="text-sm text-green-600">{successMsg}</p>}
+            {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
             <Button type="submit" disabled={saving}>
               {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : <><Save className="mr-2 h-4 w-4" />Guardar</>}
             </Button>
@@ -177,6 +192,7 @@ export default function AdminProfilePage() {
               </div>
             </div>
             {passwordMsg && <p className="text-sm text-green-600">{passwordMsg}</p>}
+            {passwordErrorMsg && <p className="text-sm text-destructive">{passwordErrorMsg}</p>}
             <Button type="submit" disabled={savingPassword}>
               {savingPassword ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : <><KeyRound className="mr-2 h-4 w-4" />Cambiar Contraseña</>}
             </Button>

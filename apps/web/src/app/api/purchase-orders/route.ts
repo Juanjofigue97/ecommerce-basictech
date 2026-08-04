@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { requireAdmin } from "@/lib/api-auth"
 
 export async function GET(request: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
@@ -52,12 +55,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
-    }
+  const { session, response: authError } = await requireAdmin()
+  if (authError) return authError
 
+  try {
     const body = await request.json()
     const items = body.items as { productId: string; variantId?: string; quantity: number; unitCost: number }[]
 

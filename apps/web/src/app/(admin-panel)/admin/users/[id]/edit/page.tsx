@@ -73,7 +73,10 @@ export default function EditUserPage() {
   const [deleting, setDeleting] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
   const [successMsg, setSuccessMsg] = useState("")
+  const [errorMsg, setErrorMsg] = useState("")
   const [pwdMsg, setPwdMsg] = useState("")
+  const [pwdErrorMsg, setPwdErrorMsg] = useState("")
+  const [deleteError, setDeleteError] = useState("")
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -103,6 +106,7 @@ export default function EditUserPage() {
   async function onSave(data: ProfileForm) {
     setSaving(true)
     setSuccessMsg("")
+    setErrorMsg("")
     try {
       const res = await fetch(`/api/users/${id}`, {
         method: "PUT",
@@ -113,11 +117,15 @@ export default function EditUserPage() {
           status: data.status,
         }),
       })
-      if (res.ok) {
-        const updated = await res.json()
-        setUser(updated)
-        setSuccessMsg("Usuario actualizado correctamente")
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al actualizar el usuario")
       }
+      const updated = await res.json()
+      setUser(updated)
+      setSuccessMsg("Usuario actualizado correctamente")
+    } catch (err) {
+      setErrorMsg((err as Error).message)
     } finally {
       setSaving(false)
     }
@@ -126,16 +134,21 @@ export default function EditUserPage() {
   async function onSavePassword(data: PasswordForm) {
     setSavingPwd(true)
     setPwdMsg("")
+    setPwdErrorMsg("")
     try {
       const res = await fetch(`/api/users/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: data.password }),
       })
-      if (res.ok) {
-        setPwdMsg("Contraseña actualizada")
-        resetPwd()
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al actualizar la contraseña")
       }
+      setPwdMsg("Contraseña actualizada")
+      resetPwd()
+    } catch (err) {
+      setPwdErrorMsg((err as Error).message)
     } finally {
       setSavingPwd(false)
     }
@@ -143,10 +156,16 @@ export default function EditUserPage() {
 
   async function handleDelete() {
     setDeleting(true)
+    setDeleteError("")
     try {
-      await fetch(`/api/users/${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/users/${id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al eliminar el usuario")
+      }
       router.push("/admin/users")
-    } finally {
+    } catch (err) {
+      setDeleteError((err as Error).message)
       setDeleting(false)
     }
   }
@@ -174,7 +193,7 @@ export default function EditUserPage() {
           <h1 className="text-2xl font-bold truncate">{user.name}</h1>
           <p className="text-muted-foreground text-sm">{user.email}</p>
         </div>
-        <Button variant="destructive" size="sm" onClick={() => setShowDelete(true)}>
+        <Button variant="destructive" size="sm" onClick={() => { setDeleteError(""); setShowDelete(true) }}>
           <Trash2 className="mr-2 h-4 w-4" />
           Eliminar
         </Button>
@@ -244,6 +263,7 @@ export default function EditUserPage() {
             </div>
 
             {successMsg && <p className="text-sm text-green-600">{successMsg}</p>}
+            {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
 
             <Button type="submit" disabled={saving}>
               {saving
@@ -279,6 +299,7 @@ export default function EditUserPage() {
               </div>
             </div>
             {pwdMsg && <p className="text-sm text-green-600">{pwdMsg}</p>}
+            {pwdErrorMsg && <p className="text-sm text-destructive">{pwdErrorMsg}</p>}
             <Button type="submit" disabled={savingPwd}>
               {savingPwd
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</>
@@ -296,6 +317,9 @@ export default function EditUserPage() {
             <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminará la cuenta de <strong>{user.name}</strong> permanentemente.
+              {deleteError && (
+                <span className="mt-2 block font-medium text-destructive">{deleteError}</span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

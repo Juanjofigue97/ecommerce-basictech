@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/generated/prisma/client"
+import { requireAdmin } from "@/lib/api-auth"
 
 export async function GET() {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const roles = await prisma.role.findMany({
       include: {
@@ -29,6 +34,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const body = await request.json()
     const { name, permissions = [] } = body
@@ -67,6 +75,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "Ya existe un rol con ese nombre" }, { status: 409 })
+    }
     console.error("Error creating role:", error)
     return NextResponse.json({ error: "Error creating role" }, { status: 500 })
   }

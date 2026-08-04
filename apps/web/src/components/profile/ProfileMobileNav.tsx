@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { User, Package, MapPin, Heart, Settings } from "lucide-react"
+import { User, Package, MapPin, Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
@@ -11,7 +11,6 @@ const navigation = [
   { name: "Pedidos", href: "/profile/orders", icon: Package },
   { name: "Direcciones", href: "/profile/addresses", icon: MapPin },
   { name: "Favoritos", href: "/profile/favorites", icon: Heart },
-  { name: "Config", href: "/profile/settings", icon: Settings },
 ]
 
 export function ProfileMobileNav() {

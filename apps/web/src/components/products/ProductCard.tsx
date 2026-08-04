@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Heart, ShoppingCart, Star, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +12,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Product } from "@/types"
 import { useCartStore } from "@/stores/cart-store"
+import { useFavoritesStore } from "@/stores/favorites-store"
 import { useCurrency } from "@/hooks/use-currency"
+import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
   product: Product
@@ -39,8 +43,32 @@ function isValueAvailable(product: Product, attrName: string, value: string, sel
 export function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem)
   const formatPrice = useCurrency()
+  const router = useRouter()
+  const { data: session } = useSession()
+  const isFavorite = useFavoritesStore((s) => s.isFavorite(product.id))
+  const addFavorite = useFavoritesStore((s) => s.addFavorite)
+  const removeFavorite = useFavoritesStore((s) => s.removeFavorite)
+  const fetchFavorites = useFavoritesStore((s) => s.fetchFavorites)
   const [added, setAdded] = useState(false)
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (session) fetchFavorites()
+  }, [session, fetchFavorites])
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!session) {
+      router.push(`/login?callbackUrl=/products/${product.slug}`)
+      return
+    }
+    if (isFavorite) {
+      removeFavorite(product.id).catch(() => {})
+    } else {
+      addFavorite(product).catch(() => {})
+    }
+  }
 
   const hasVariantAttrs =
     (product.variantAttributeNames?.length ?? 0) > 0 && (product.variants?.length ?? 0) > 0
@@ -138,10 +166,16 @@ export function ProductCard({ product }: ProductCardProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-2 top-2 z-10 h-8 w-8 rounded-full bg-background/80 opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={handleToggleFavorite}
+          className={cn(
+            "absolute right-2 top-2 z-10 h-8 w-8 rounded-full bg-background/80 transition-opacity",
+            isFavorite ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
         >
-          <Heart className="h-4 w-4" />
-          <span className="sr-only">Agregar a favoritos</span>
+          <Heart className={cn("h-4 w-4", isFavorite && "fill-destructive text-destructive")} />
+          <span className="sr-only">
+            {isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+          </span>
         </Button>
 
         {/* Image */}

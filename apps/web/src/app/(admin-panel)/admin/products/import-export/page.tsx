@@ -98,20 +98,52 @@ export default function ProductImportExportPage() {
   // ── descargar plantilla ──────────────────────────────────────────────────
 
   function handleDownloadTemplate() {
-    const exampleRow = {
-      name: "Laptop Gamer Pro",
-      slug: "laptop-gamer-pro",
-      description: "Laptop de alto rendimiento para gaming",
-      price: 2500000,
-      comparePrice: 2800000,
-      stock: 5,
-      isNew: "true",
-      isFeatured: "true",
-      isActive: "true",
-      categorySlug: categories[0]?.slug ?? "slug-categoria",
-      brandSlug: brands[0]?.slug ?? "slug-marca",
-    }
-    downloadCSV({ filename: "plantilla-productos", columns: CSV_COLUMNS, data: [exampleRow] })
+    const exampleRows: {
+      name: string
+      slug: string
+      description: string
+      price: number
+      comparePrice: number | string
+      stock: number
+      isNew: string
+      isFeatured: string
+      isActive: string
+      categorySlug: string
+      brandSlug: string
+    }[] =
+      categories.length > 0 && brands.length > 0
+        ? categories.map((category, i) => {
+            const brand = brands[i % brands.length]
+            return {
+              name: `Producto Ejemplo - ${category.name}`,
+              slug: `producto-ejemplo-${category.slug}`,
+              description: `Producto de ejemplo para la categoría ${category.name}`,
+              price: 100000 * (i + 1),
+              comparePrice: "",
+              stock: 10,
+              isNew: i % 2 === 0 ? "true" : "false",
+              isFeatured: i % 2 === 0 ? "true" : "false",
+              isActive: "true",
+              categorySlug: category.slug,
+              brandSlug: brand.slug,
+            }
+          })
+        : [
+            {
+              name: "Laptop Gamer Pro",
+              slug: "laptop-gamer-pro",
+              description: "Laptop de alto rendimiento para gaming",
+              price: 2500000,
+              comparePrice: 2800000,
+              stock: 5,
+              isNew: "true",
+              isFeatured: "true",
+              isActive: "true",
+              categorySlug: "slug-categoria",
+              brandSlug: "slug-marca",
+            },
+          ]
+    downloadCSV({ filename: "plantilla-productos", columns: CSV_COLUMNS, data: exampleRows })
   }
 
   // ── manejo de archivo ────────────────────────────────────────────────────

@@ -7,7 +7,12 @@ import { Loader2, CreditCard, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/stores/cart-store"
 
-export function CheckoutButton() {
+interface CheckoutButtonProps {
+  addressId?: string
+  disabled?: boolean
+}
+
+export function CheckoutButton({ addressId, disabled }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const items = useCartStore((state) => state.items)
   const { data: session, status } = useSession()
@@ -28,11 +33,10 @@ export function CheckoutButton() {
         body: JSON.stringify({
           items: items.map((item) => ({
             id: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
+            variantId: item.variantId,
             quantity: item.quantity,
-            image: item.product.images?.[0],
           })),
+          shippingAddressId: addressId,
         }),
       })
 
@@ -56,7 +60,7 @@ export function CheckoutButton() {
   return (
     <Button
       onClick={handleCheckout}
-      disabled={isLoading || items.length === 0}
+      disabled={isLoading || items.length === 0 || disabled}
       className="w-full"
       size="lg"
     >

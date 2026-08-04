@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/api-auth"
 
 interface Params {
   params: Promise<{ id: string }>
@@ -36,6 +37,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
     const body = await request.json()

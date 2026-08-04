@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/generated/prisma/client"
+import { requireAdmin } from "@/lib/api-auth"
 
 export async function GET() {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const attributes = await prisma.attribute.findMany({
       include: {
@@ -18,6 +23,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { name, slug } = await request.json()
 
@@ -31,6 +39,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(attribute, { status: 201 })
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "Ya existe un atributo con ese slug" }, { status: 409 })
+    }
     console.error("Error creating attribute:", error)
     return NextResponse.json({ error: "Error creating attribute" }, { status: 500 })
   }

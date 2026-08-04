@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { parseCSV } from "@/lib/export/csv-parser"
 import { MAX_ROWS } from "@/lib/products/import-types"
 import type { ValidatedRow, ValidationReport } from "@/lib/products/import-types"
+import { requireAdmin } from "@/lib/api-auth"
 
 const REQUIRED_HEADERS = [
   "name", "slug", "price", "stock",
@@ -18,6 +19,9 @@ function parseBool(v: string): boolean | null {
 }
 
 export async function POST(req: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   let formData: FormData
   try {
     formData = await req.formData()

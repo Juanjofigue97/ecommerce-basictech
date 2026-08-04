@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/api-auth"
 
 interface Params {
   params: Promise<{ id: string; variantId: string }>
@@ -34,6 +35,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { variantId } = await params
     const body = await request.json()
@@ -65,6 +69,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { variantId } = await params
 

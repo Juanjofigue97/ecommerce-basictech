@@ -142,6 +142,7 @@ model User {
   purchaseOrders  PurchaseOrder[]
   cashSessions    CashSession[]
   cashMovements   CashMovement[]
+  favorites       Favorite[]
 
   @@index([roleId])
   @@map("users")
@@ -220,11 +221,27 @@ model Product {
   attributes          ProductAttribute[]
   variants            ProductVariant[]
   purchaseOrderItems  PurchaseOrderItem[]
+  favorites           Favorite[]
 
   @@index([categoryId])
   @@index([brandId])
   @@index([slug])
   @@map("products")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("favorites")
 }
 
 model Address {
@@ -557,30 +574,14 @@ model HeroSlide {
 }
 
 model StoreSettings {
-  id          String @id @default("singleton")
-  name        String @default("BasicWear")
-  email       String @default("info@basicwear.com")
-  phone       String @default("+57 300 000 0000")
-  address     String @default("Calle 72 #10-34, Bogotá")
-  description String @default("Tu tienda de ropa y accesorios de confianza")
-  timezone    String @default("america-bogota")
-  currency    String @default("cop")
-
-  showOutOfStock   Boolean @default(true)
-  showStockCount   Boolean @default(true)
-  allowReviews     Boolean @default(true)
-  shippingCost     Decimal @default(15) @db.Decimal(10, 2)
-  freeShippingFrom Decimal @default(200) @db.Decimal(10, 2)
-
-  notifyNewOrders      Boolean @default(true)
-  notifyFailedPayments Boolean @default(true)
-  notifyLowStock       Boolean @default(true)
-  notifyNewUsers       Boolean @default(false)
-
-  enableCards          Boolean @default(true)
-  enableTransfer       Boolean @default(true)
-  enableWallets        Boolean @default(true)
-  enableCashOnDelivery Boolean @default(false)
+  id          String  @id @default("singleton")
+  name        String  @default("BasicTechShop")
+  email       String  @default("info@basictechshop.com")
+  phone       String  @default("+57 300 000 0000")
+  address     String  @default("Calle 72 #10-34, Bogotá")
+  description String  @default("Tu tienda de tecnología y computación de confianza")
+  logo        String?
+  currency    String  @default("cop")
 
   updatedAt DateTime @updatedAt
 

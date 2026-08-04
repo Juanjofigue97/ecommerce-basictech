@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/generated/prisma/client"
+import { requireAdmin } from "@/lib/api-auth"
 
 interface Params {
   params: Promise<{ id: string }>
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
     const attribute = await prisma.attribute.findUnique({
@@ -28,6 +33,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
     const { name, slug } = await request.json()
@@ -43,12 +51,18 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(attribute)
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "Ya existe un atributo con ese slug" }, { status: 409 })
+    }
     console.error("Error updating attribute:", error)
     return NextResponse.json({ error: "Error updating attribute" }, { status: 500 })
   }
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
 

@@ -33,6 +33,7 @@ function generateSlug(name: string) {
 export default function NewCategoryPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
 
   const {
     register,
@@ -47,16 +48,20 @@ export default function NewCategoryPage() {
 
   const onSubmit = async (data: CategoryFormData) => {
     setSaving(true)
+    setError("")
     try {
       const res = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error("Error creating category")
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al crear la categoría")
+      }
       router.push("/admin/categories")
-    } catch (error) {
-      console.error(error)
+    } catch (err) {
+      setError((err as Error).message)
     } finally {
       setSaving(false)
     }
@@ -85,6 +90,8 @@ export default function NewCategoryPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>
               <Input

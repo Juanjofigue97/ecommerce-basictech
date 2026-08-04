@@ -22,20 +22,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
+    // Idempotency: Wompi can redeliver the same event, and a PENDING order is
+    // the only state that should still be mutated by a webhook.
+    if (order.status !== "PENDING") {
+      return NextResponse.json({ received: true })
+    }
+
     if (event.type === "payment.completed") {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { status: "PROCESSING", paymentSessionId: event.transactionId },
-      })
-
-      const items = await prisma.orderItem.findMany({ where: { orderId: order.id } })
-
-      for (const item of items) {
-        await prisma.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
+      await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: "PROCESSING", paymentSessionId: event.transactionId },
         })
-      }
+
+        const items = await tx.orderItem.findMany({ where: { orderId: order.id } })
+
+        for (const item of items) {
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { decrement: item.quantity } },
+            })
+            const siblingVariants = await tx.productVariant.findMany({
+              where: { productId: item.productId, isActive: true },
+              select: { stock: true },
+            })
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: siblingVariants.reduce((s, v) => s + v.stock, 0) },
+            })
+          } else {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { decrement: item.quantity } },
+            })
+          }
+        }
+      })
     } else if (event.type === "payment.failed") {
       await prisma.order.update({
         where: { id: order.id },

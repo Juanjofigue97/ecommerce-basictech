@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/generated/prisma/client"
 import { transformCategory } from "@/lib/transformers"
+import { requireAdmin } from "@/lib/api-auth"
 
 interface Params {
   params: Promise<{ id: string }>
@@ -39,6 +41,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
     const body = await request.json()
@@ -76,12 +81,21 @@ export async function PUT(request: NextRequest, { params }: Params) {
       attributes: category.attributes.map((a) => a.attribute),
     })
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Ya existe una categoría con ese slug" },
+        { status: 409 }
+      )
+    }
     console.error("Error updating category:", error)
     return NextResponse.json({ error: "Error updating category" }, { status: 500 })
   }
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
 

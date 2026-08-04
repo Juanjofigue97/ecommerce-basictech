@@ -67,7 +67,7 @@ export const usePurchaseOrdersStore = create<PurchaseOrdersState>((set) => ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    if (!res.ok) throw new Error("Error creating purchase order")
+    if (!res.ok) throw new Error((await res.json()).error ?? "Error creating purchase order")
     return res.json()
   },
 
@@ -77,7 +77,7 @@ export const usePurchaseOrdersStore = create<PurchaseOrdersState>((set) => ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    if (!res.ok) throw new Error("Error updating purchase order")
+    if (!res.ok) throw new Error((await res.json()).error ?? "Error updating purchase order")
     return res.json()
   },
 }))

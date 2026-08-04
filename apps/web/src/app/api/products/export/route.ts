@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { csvResponse } from "@/lib/export/server"
 import type { ExportColumn } from "@/lib/export/types"
+import { requireAdmin } from "@/lib/api-auth"
 
 type ProductRow = Awaited<ReturnType<typeof fetchProducts>>[number]
 
@@ -26,6 +27,9 @@ const COLUMNS: ExportColumn<ProductRow>[] = [
 ]
 
 export async function GET() {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   const products = await fetchProducts()
   return csvResponse({ filename: "productos", columns: COLUMNS, data: products })
 }

@@ -48,7 +48,9 @@ export default function AddressesPage() {
   const { addresses, loading, fetchAddresses, deleteAddress, updateAddress } = useUserStore()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
   const [settingDefault, setSettingDefault] = useState<string | null>(null)
+  const [defaultError, setDefaultError] = useState("")
 
   useEffect(() => {
     fetchAddresses()
@@ -57,21 +59,27 @@ export default function AddressesPage() {
   const handleDelete = async () => {
     if (!deleteId) return
     setDeleting(true)
+    setDeleteError("")
     try {
       await deleteAddress(deleteId)
+      setDeleteId(null)
+    } catch (err) {
+      setDeleteError((err as Error).message)
     } finally {
       setDeleting(false)
-      setDeleteId(null)
     }
   }
 
   const handleSetDefault = async (id: string) => {
     setSettingDefault(id)
+    setDefaultError("")
     try {
       const address = addresses.find((a) => a.id === id)
       if (address) {
         await updateAddress(id, { ...address, isDefault: true })
       }
+    } catch (err) {
+      setDefaultError((err as Error).message)
     } finally {
       setSettingDefault(null)
     }
@@ -109,6 +117,8 @@ export default function AddressesPage() {
           </Link>
         </Button>
       </div>
+
+      {defaultError && <p className="text-sm text-destructive">{defaultError}</p>}
 
       {addresses.length === 0 ? (
         <Card>
@@ -188,12 +198,15 @@ export default function AddressesPage() {
         </div>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={() => { setDeleteId(null); setDeleteError("") }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar direccion</AlertDialogTitle>
             <AlertDialogDescription>
               Esta accion no se puede deshacer. La direccion sera eliminada permanentemente.
+              {deleteError && (
+                <span className="mt-2 block font-medium text-destructive">{deleteError}</span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

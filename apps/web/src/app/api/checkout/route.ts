@@ -5,10 +5,8 @@ import { paymentService } from "@/services/payment"
 
 interface CartItem {
   id: string
-  name: string
-  price: number
+  variantId?: string
   quantity: number
-  image?: string
 }
 
 interface CheckoutBody {
@@ -36,16 +34,73 @@ export async function POST(request: NextRequest) {
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "No hay productos en el carrito" }, { status: 400 })
     }
+    for (const item of items) {
+      if (!item.id || !Number.isInteger(item.quantity) || item.quantity <= 0) {
+        return NextResponse.json({ error: "Cantidad inválida en el carrito" }, { status: 400 })
+      }
+    }
 
-    const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0)
+    // Resolve authoritative price, name and stock from the DB — never trust the client
+    const productIds = [...new Set(items.map((i) => i.id))]
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, price: true, stock: true },
+    })
+    const productMap = new Map(products.map((p) => [p.id, p]))
+
+    const variantIds = items.map((i) => i.variantId).filter((id): id is string => Boolean(id))
+    const variants = variantIds.length
+      ? await prisma.productVariant.findMany({
+          where: { id: { in: variantIds } },
+          select: { id: true, label: true, price: true, stock: true },
+        })
+      : []
+    const variantMap = new Map(variants.map((v) => [v.id, v]))
+
+    let subtotal = 0
+    const resolvedItems: {
+      productId: string
+      variantId: string | null
+      name: string
+      unitPrice: number
+      quantity: number
+    }[] = []
+
+    for (const item of items) {
+      const product = productMap.get(item.id)
+      if (!product) {
+        return NextResponse.json({ error: "Uno de los productos ya no existe" }, { status: 400 })
+      }
+      const variant = item.variantId ? variantMap.get(item.variantId) : null
+      if (item.variantId && !variant) {
+        return NextResponse.json({ error: "Una de las variantes ya no existe" }, { status: 400 })
+      }
+
+      const availableStock = variant ? variant.stock : product.stock
+      if (availableStock < item.quantity) {
+        return NextResponse.json(
+          { error: `Stock insuficiente para "${product.name}"` },
+          { status: 409 }
+        )
+      }
+
+      const unitPrice = variant?.price != null ? Number(variant.price) : Number(product.price)
+      const name = variant?.label ? `${product.name} - ${variant.label}` : product.name
+      subtotal += unitPrice * item.quantity
+      resolvedItems.push({
+        productId: item.id,
+        variantId: item.variantId ?? null,
+        name,
+        unitPrice,
+        quantity: item.quantity,
+      })
+    }
+
     const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING
     const total = subtotal + shipping
     const amountInCents = Math.round(total * 100)
 
     const reference = `BT-${Date.now()}`
-
-    const productIds = items.map((i) => i.id)
-    const products = await prisma.product.findMany({ where: { id: { in: productIds } } })
 
     let addressId = shippingAddressId
     if (!addressId) {
@@ -87,16 +142,14 @@ export async function POST(request: NextRequest) {
         paymentMethod: "Wompi",
         paymentSessionId: reference,
         items: {
-          create: items.map((item) => {
-            const product = products.find((p) => p.id === item.id)
-            return {
-              productId: item.id,
-              name: product?.name ?? item.name,
-              price: item.price,
-              quantity: item.quantity,
-              total: item.price * item.quantity,
-            }
-          }),
+          create: resolvedItems.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            name: item.name,
+            price: item.unitPrice,
+            quantity: item.quantity,
+            total: item.unitPrice * item.quantity,
+          })),
         },
       },
     })

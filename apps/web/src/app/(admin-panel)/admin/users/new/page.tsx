@@ -34,6 +34,7 @@ export default function NewUserPage() {
   const router = useRouter()
   const { roles, fetchRoles } = useRolesStore()
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     fetchRoles()
@@ -50,16 +51,20 @@ export default function NewUserPage() {
 
   const onSubmit = async (data: UserFormData) => {
     setSaving(true)
+    setError("")
     try {
       const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (!response.ok) throw new Error("Error creating user")
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al crear el usuario")
+      }
       router.push("/admin/users")
-    } catch (error) {
-      console.error("Error creating user:", error)
+    } catch (err) {
+      setError((err as Error).message)
     } finally {
       setSaving(false)
     }
@@ -131,6 +136,8 @@ export default function NewUserPage() {
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
             </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" asChild>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Loader2, UserCog } from "lucide-react"
@@ -38,6 +38,7 @@ export function RoleForm({
 }: RoleFormProps) {
   const router = useRouter()
   const { permissions, fetchPermissions } = useRolesStore()
+  const [error, setError] = useState("")
 
   useEffect(() => {
     fetchPermissions()
@@ -65,8 +66,13 @@ export function RoleForm({
   }
 
   const handleFormSubmit = async (data: RoleFormData) => {
-    await onSubmit(data)
-    router.push("/admin/roles")
+    setError("")
+    try {
+      await onSubmit(data)
+      router.push("/admin/roles")
+    } catch (err) {
+      setError((err as Error).message)
+    }
   }
 
   return (
@@ -130,6 +136,8 @@ export function RoleForm({
                 ))}
               </div>
             </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" asChild>

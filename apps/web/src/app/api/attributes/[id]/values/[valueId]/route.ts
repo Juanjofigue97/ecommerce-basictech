@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/generated/prisma/client"
+import { requireAdmin } from "@/lib/api-auth"
 
 interface Params {
   params: Promise<{ id: string; valueId: string }>
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { valueId } = await params
     const { value, slug } = await request.json()
@@ -17,12 +22,21 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(attributeValue)
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Ya existe un valor con ese slug para este atributo" },
+        { status: 409 }
+      )
+    }
     console.error("Error updating attribute value:", error)
     return NextResponse.json({ error: "Error updating attribute value" }, { status: 500 })
   }
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { valueId } = await params
 

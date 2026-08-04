@@ -44,7 +44,7 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
       if (filters.categories.length === 1) params.set("category", filters.categories[0])
       if (filters.brands.length === 1) params.set("brand", filters.brands[0])
       if (filters.priceRange[0] > 0) params.set("minPrice", filters.priceRange[0].toString())
-      if (filters.priceRange[1] < 10000) params.set("maxPrice", filters.priceRange[1].toString())
+      if (filters.priceRange[1] < 5_000_000) params.set("maxPrice", filters.priceRange[1].toString())
       if (filters.sortBy) params.set("sortBy", filters.sortBy)
       if (filters.search) params.set("search", filters.search)
 

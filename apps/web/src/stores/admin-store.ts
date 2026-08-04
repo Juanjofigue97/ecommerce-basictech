@@ -77,21 +77,8 @@ export interface StoreSettings {
   phone: string
   address: string
   description: string
-  timezone: string
+  logo: string | null
   currency: string
-  showOutOfStock: boolean
-  showStockCount: boolean
-  allowReviews: boolean
-  shippingCost: number
-  freeShippingFrom: number
-  notifyNewOrders: boolean
-  notifyFailedPayments: boolean
-  notifyLowStock: boolean
-  notifyNewUsers: boolean
-  enableCards: boolean
-  enableTransfer: boolean
-  enableWallets: boolean
-  enableCashOnDelivery: boolean
   updatedAt: string
 }
 

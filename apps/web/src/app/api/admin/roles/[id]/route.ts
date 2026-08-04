@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/generated/prisma/client"
+import { requireAdmin } from "@/lib/api-auth"
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
     const body = await request.json()
@@ -13,6 +18,13 @@ export async function PUT(
     const existing = await prisma.role.findUnique({ where: { id } })
     if (!existing) {
       return NextResponse.json({ error: "Rol no encontrado" }, { status: 404 })
+    }
+
+    if (existing.isSystem) {
+      return NextResponse.json(
+        { error: "No se puede modificar un rol del sistema" },
+        { status: 403 }
+      )
     }
 
     if (!name?.trim()) {
@@ -49,6 +61,9 @@ export async function PUT(
       createdAt: role.createdAt.toISOString(),
     })
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "Ya existe un rol con ese nombre" }, { status: 409 })
+    }
     console.error("Error updating role:", error)
     return NextResponse.json({ error: "Error updating role" }, { status: 500 })
   }
@@ -58,6 +73,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id } = await params
 

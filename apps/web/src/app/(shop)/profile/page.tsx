@@ -1,17 +1,37 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { useCurrency } from "@/hooks/use-currency"
-import { Camera, Pencil } from "lucide-react"
+import { Loader2, Save, KeyRound } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useUserStore } from "@/stores/user-store"
+
+const profileSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  email: z.string().email("Email inválido"),
+})
+
+const passwordSchema = z
+  .object({
+    password: z.string().min(6, "Mínimo 6 caracteres"),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  })
+
+type ProfileForm = z.infer<typeof profileSchema>
+type PasswordForm = z.infer<typeof passwordSchema>
 
 function ProfileSkeleton() {
   return (
@@ -47,11 +67,75 @@ export default function ProfilePage() {
   const { data: session, status } = useSession()
   const { orders, fetchOrders } = useUserStore()
 
+  const [saving, setSaving] = useState(false)
+  const [successMsg, setSuccessMsg] = useState("")
+  const [errorMsg, setErrorMsg] = useState("")
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordMsg, setPasswordMsg] = useState("")
+  const [passwordErrorMsg, setPasswordErrorMsg] = useState("")
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileForm>({
+    resolver: zodResolver(profileSchema),
+  })
+
+  const {
+    register: regPwd,
+    handleSubmit: handlePwd,
+    reset: resetPwd,
+    formState: { errors: pwdErrors },
+  } = useForm<PasswordForm>({ resolver: zodResolver(passwordSchema) })
+
   useEffect(() => {
     if (session?.user) {
       fetchOrders()
+      reset({ name: session.user.name ?? "", email: session.user.email ?? "" })
     }
-  }, [session, fetchOrders])
+  }, [session, fetchOrders, reset])
+
+  async function onSaveProfile(data: ProfileForm) {
+    setSaving(true)
+    setSuccessMsg("")
+    setErrorMsg("")
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al actualizar el perfil")
+      }
+      setSuccessMsg("Perfil actualizado correctamente")
+    } catch (err) {
+      setErrorMsg((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function onSavePassword(data: PasswordForm) {
+    setSavingPassword(true)
+    setPasswordMsg("")
+    setPasswordErrorMsg("")
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: data.password }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al actualizar la contraseña")
+      }
+      setPasswordMsg("Contraseña actualizada")
+      resetPwd()
+    } catch (err) {
+      setPasswordErrorMsg((err as Error).message)
+    } finally {
+      setSavingPassword(false)
+    }
+  }
 
   if (status === "loading") {
     return <ProfileSkeleton />
@@ -82,20 +166,11 @@ export default function ProfilePage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <div className="relative">
-              <Avatar className="h-24 w-24">
-                <AvatarFallback className="text-2xl">
-                  {user?.name ? getInitials(user.name) : "U"}
-                </AvatarFallback>
-              </Avatar>
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
-            </div>
+            <Avatar className="h-24 w-24">
+              <AvatarFallback className="text-2xl">
+                {user?.name ? getInitials(user.name) : "U"}
+              </AvatarFallback>
+            </Avatar>
             <div className="text-center sm:text-left">
               <h2 className="text-xl font-semibold">{user?.name}</h2>
               <p className="text-muted-foreground">{user?.email}</p>
@@ -128,29 +203,36 @@ export default function ProfilePage() {
 
       {/* Personal Info */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Informacion Personal</CardTitle>
-            <CardDescription>
-              Administra tu informacion personal
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm">
-            <Pencil className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
+        <CardHeader>
+          <CardTitle>Informacion Personal</CardTitle>
+          <CardDescription>
+            Administra tu informacion personal
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Nombre completo</Label>
-              <Input value={user?.name || ""} readOnly className="bg-muted" />
+        <CardContent>
+          <form onSubmit={handleSubmit(onSaveProfile)} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre completo</Label>
+                <Input id="name" {...register("name")} />
+                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo electronico</Label>
+                <Input id="email" type="email" {...register("email")} />
+                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Correo electronico</Label>
-              <Input value={user?.email || ""} readOnly className="bg-muted" />
-            </div>
-          </div>
+            {successMsg && <p className="text-sm text-green-600">{successMsg}</p>}
+            {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
+            <Button type="submit" disabled={saving}>
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</>
+              ) : (
+                <><Save className="mr-2 h-4 w-4" />Guardar</>
+              )}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
@@ -159,29 +241,37 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle>Seguridad</CardTitle>
           <CardDescription>
-            Administra la seguridad de tu cuenta
+            Cambiá tu contraseña
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Contrasena</p>
-              <p className="text-sm text-muted-foreground">
-                Cambia tu contrasena regularmente
-              </p>
+        <CardContent>
+          <form onSubmit={handlePwd(onSavePassword)} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="password">Nueva contraseña</Label>
+                <Input id="password" type="password" {...regPwd("password")} />
+                {pwdErrors.password && (
+                  <p className="text-sm text-destructive">{pwdErrors.password.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                <Input id="confirmPassword" type="password" {...regPwd("confirmPassword")} />
+                {pwdErrors.confirmPassword && (
+                  <p className="text-sm text-destructive">{pwdErrors.confirmPassword.message}</p>
+                )}
+              </div>
             </div>
-            <Button variant="outline">Cambiar</Button>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Autenticacion de dos factores</p>
-              <p className="text-sm text-muted-foreground">
-                Agrega una capa extra de seguridad
-              </p>
-            </div>
-            <Button variant="outline">Configurar</Button>
-          </div>
+            {passwordMsg && <p className="text-sm text-green-600">{passwordMsg}</p>}
+            {passwordErrorMsg && <p className="text-sm text-destructive">{passwordErrorMsg}</p>}
+            <Button type="submit" disabled={savingPassword}>
+              {savingPassword ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</>
+              ) : (
+                <><KeyRound className="mr-2 h-4 w-4" />Cambiar Contraseña</>
+              )}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

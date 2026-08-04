@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { MAX_ROWS } from "@/lib/products/import-types"
 import type { ResolvedRow } from "@/lib/products/import-types"
+import { requireAdmin } from "@/lib/api-auth"
 
 export async function POST(req: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   let body: { rows: ResolvedRow[] }
   try {
     body = await req.json()

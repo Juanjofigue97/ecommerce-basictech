@@ -74,7 +74,10 @@ export default function EditCategoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, attributeIds: selectedAttributeIds }),
       })
-      if (!res.ok) throw new Error("Error al actualizar la categoría")
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al actualizar la categoría")
+      }
       router.push("/admin/categories")
     } catch (error) {
       alert((error as Error).message)

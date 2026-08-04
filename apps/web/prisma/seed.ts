@@ -87,15 +87,12 @@ async function main() {
   await prisma.storeSettings.create({
     data: {
       id: "singleton",
-      name: "GoalKit",
-      email: "admin@gmail.com",
+      name: "BasicTechShop",
+      email: "info@basictechshop.com",
       phone: "+57 300 123 4567",
       address: "Calle 72 #10-34, Bogotá",
-      description: "Tu tienda oficial de camisetas y equipación de fútbol",
-      timezone: "america-bogota",
+      description: "Tu tienda de tecnología y computación de confianza",
       currency: "cop",
-      shippingCost: 12000,
-      freeShippingFrom: 150000,
     },
   })
   console.log("Created store settings")

@@ -68,7 +68,10 @@ export default function AttributeDetailPage() {
   const [attribute, setAttribute] = useState<Attribute | null>(null)
   const [loading, setLoading] = useState(true)
   const [savingAttr, setSavingAttr] = useState(false)
+  const [attrError, setAttrError] = useState<string | null>(null)
   const [addingValue, setAddingValue] = useState(false)
+  const [addValueError, setAddValueError] = useState<string | null>(null)
+  const [editValueError, setEditValueError] = useState<string | null>(null)
   const [deleteValueId, setDeleteValueId] = useState<string | null>(null)
   const [deletingValue, setDeletingValue] = useState(false)
   const [deleteValueError, setDeleteValueError] = useState<string | null>(null)
@@ -101,18 +104,22 @@ export default function AttributeDetailPage() {
 
   const onSaveAttribute = async (data: AttributeFormData) => {
     setSavingAttr(true)
+    setAttrError(null)
     try {
       const res = await fetch(`/api/attributes/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al guardar el atributo")
+      }
       const updated = await res.json()
       setAttribute(updated)
       attrForm.reset({ name: updated.name, slug: updated.slug })
-    } catch {
-      console.error("Error saving attribute")
+    } catch (err) {
+      setAttrError((err as Error).message)
     } finally {
       setSavingAttr(false)
     }
@@ -120,13 +127,17 @@ export default function AttributeDetailPage() {
 
   const onAddValue = async (data: ValueFormData) => {
     setAddingValue(true)
+    setAddValueError(null)
     try {
       const res = await fetch(`/api/attributes/${id}/values`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al agregar el valor")
+      }
       const newValue = await res.json()
       setAttribute((prev) =>
         prev
@@ -138,8 +149,8 @@ export default function AttributeDetailPage() {
           : prev
       )
       valueForm.reset({ value: "", slug: "" })
-    } catch {
-      console.error("Error adding value")
+    } catch (err) {
+      setAddValueError((err as Error).message)
     } finally {
       setAddingValue(false)
     }
@@ -180,23 +191,29 @@ export default function AttributeDetailPage() {
     setEditingValueId(v.id)
     setEditingValue(v.value)
     setEditingSlug(v.slug)
+    setEditValueError(null)
   }
 
   const cancelEdit = () => {
     setEditingValueId(null)
     setEditingValue("")
     setEditingSlug("")
+    setEditValueError(null)
   }
 
   const saveEditValue = async (valueId: string) => {
     setSavingEdit(true)
+    setEditValueError(null)
     try {
       const res = await fetch(`/api/attributes/${id}/values/${valueId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: editingValue, slug: editingSlug }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al guardar el valor")
+      }
       const updated = await res.json()
       setAttribute((prev) =>
         prev
@@ -209,8 +226,8 @@ export default function AttributeDetailPage() {
           : prev
       )
       cancelEdit()
-    } catch {
-      console.error("Error saving value")
+    } catch (err) {
+      setEditValueError((err as Error).message)
     } finally {
       setSavingEdit(false)
     }
@@ -275,6 +292,7 @@ export default function AttributeDetailPage() {
                   <p className="text-sm text-destructive">{attrForm.formState.errors.slug.message}</p>
                 )}
               </div>
+              {attrError && <p className="text-sm text-destructive">{attrError}</p>}
               <Button type="submit" disabled={savingAttr}>
                 {savingAttr ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : "Guardar cambios"}
               </Button>
@@ -317,6 +335,8 @@ export default function AttributeDetailPage() {
                 {addingValue ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               </Button>
             </form>
+            {addValueError && <p className="text-xs text-destructive">{addValueError}</p>}
+            {editValueError && <p className="text-xs text-destructive">{editValueError}</p>}
 
             <Separator />
 

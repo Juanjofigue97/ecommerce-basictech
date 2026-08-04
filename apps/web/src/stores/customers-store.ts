@@ -57,7 +57,7 @@ export const useCustomersStore = create<CustomersState>((set) => ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    if (!res.ok) throw new Error("Error creating customer")
+    if (!res.ok) throw new Error((await res.json()).error ?? "Error creating customer")
     return res.json()
   },
 
@@ -67,7 +67,7 @@ export const useCustomersStore = create<CustomersState>((set) => ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    if (!res.ok) throw new Error("Error updating customer")
+    if (!res.ok) throw new Error((await res.json()).error ?? "Error updating customer")
     return res.json()
   },
 

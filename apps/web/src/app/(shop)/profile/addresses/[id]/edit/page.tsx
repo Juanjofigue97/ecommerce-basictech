@@ -36,11 +36,13 @@ const addressSchema = z.object({
 type AddressFormData = z.infer<typeof addressSchema>
 
 const departments = [
-  "Amazonas", "Ancash", "Apurimac", "Arequipa", "Ayacucho",
-  "Cajamarca", "Callao", "Cusco", "Huancavelica", "Huanuco",
-  "Ica", "Junin", "La Libertad", "Lambayeque", "Lima",
-  "Loreto", "Madre de Dios", "Moquegua", "Pasco", "Piura",
-  "Puno", "San Martin", "Tacna", "Tumbes", "Ucayali",
+  "Amazonas", "Antioquia", "Arauca", "Atlántico", "Bolívar",
+  "Boyacá", "Caldas", "Caquetá", "Casanare", "Cauca",
+  "Cesar", "Chocó", "Córdoba", "Cundinamarca", "Guainía",
+  "Guaviare", "Huila", "La Guajira", "Magdalena", "Meta",
+  "Nariño", "Norte de Santander", "Putumayo", "Quindío", "Risaralda",
+  "San Andrés y Providencia", "Santander", "Sucre", "Tolima",
+  "Valle del Cauca", "Vaupés", "Vichada", "Bogotá D.C.",
 ]
 
 function EditFormSkeleton() {
@@ -85,6 +87,7 @@ export default function EditAddressPage() {
   const id = params.id as string
   const { addresses, fetchAddresses, updateAddress } = useUserStore()
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
   const [loadingAddress, setLoadingAddress] = useState(true)
 
   const {
@@ -129,11 +132,12 @@ export default function EditAddressPage() {
 
   const onSubmit = async (data: AddressFormData) => {
     setSaving(true)
+    setError("")
     try {
       await updateAddress(id, data)
       router.push("/profile/addresses")
-    } catch (error) {
-      console.error("Error updating address:", error)
+    } catch (err) {
+      setError((err as Error).message)
     } finally {
       setSaving(false)
     }
@@ -312,6 +316,8 @@ export default function EditAddressPage() {
                 Establecer como direccion predeterminada
               </Label>
             </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" asChild>

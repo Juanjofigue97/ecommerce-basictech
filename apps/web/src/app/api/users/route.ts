@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/generated/prisma/client"
 import bcrypt from "bcryptjs"
+import { requireAdmin } from "@/lib/api-auth"
 
 export async function GET(request: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { searchParams } = new URL(request.url)
     const roleId = searchParams.get("roleId")
@@ -50,8 +55,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const body = await request.json()
+    if (!body.password || typeof body.password !== "string" || body.password.length < 6) {
+      return NextResponse.json(
+        { error: "La contraseña debe tener al menos 6 caracteres" },
+        { status: 400 }
+      )
+    }
     const hashedPassword = await bcrypt.hash(body.password, 10)
 
     const user = await prisma.user.create({
@@ -85,6 +99,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "Ya existe un usuario con ese email" }, { status: 409 })
+    }
     console.error("Error creating user:", error)
     return NextResponse.json({ error: "Error creating user" }, { status: 500 })
   }

@@ -15,8 +15,7 @@ export function OrderSummary({ items }: OrderSummaryProps) {
     (acc, item) => acc + item.product.price * item.quantity,
     0
   )
-  const shipping = subtotal >= 200 ? 0 : 15
-  const tax = subtotal * 0.18 // 18% IGV
+  const shipping = subtotal >= 200_000 ? 0 : 15_000
   const total = subtotal + shipping
 
   return (

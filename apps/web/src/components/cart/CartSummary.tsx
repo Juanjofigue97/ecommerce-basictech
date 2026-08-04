@@ -3,6 +3,7 @@
 import { Truck } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { CartItem } from "@/types"
+import { CheckoutButton } from "./CheckoutButton"
 import { WhatsAppOrderButton } from "./WhatsAppOrderButton"
 import { useCurrency } from "@/hooks/use-currency"
 
@@ -16,7 +17,7 @@ export function CartSummary({ items }: CartSummaryProps) {
     (acc, item) => acc + item.product.price * item.quantity,
     0
   )
-  const shipping = subtotal >= 200 ? 0 : 15
+  const shipping = subtotal >= 200_000 ? 0 : 15_000
   const total = subtotal + shipping
 
   return (
@@ -37,7 +38,7 @@ export function CartSummary({ items }: CartSummaryProps) {
           <div className="flex items-center gap-2 rounded-md bg-muted p-3 text-xs">
             <Truck className="h-4 w-4 text-muted-foreground" />
             <span>
-              Agrega {formatPrice(200 - subtotal)} mas para envio gratis
+              Agrega {formatPrice(200_000 - subtotal)} mas para envio gratis
             </span>
           </div>
         )}
@@ -51,13 +52,13 @@ export function CartSummary({ items }: CartSummaryProps) {
       </div>
 
       <div className="mt-6 space-y-3">
-        {/* <CheckoutButton /> */}
+        <CheckoutButton />
         <WhatsAppOrderButton />
       </div>
 
-      {/* <p className="mt-4 text-center text-xs text-muted-foreground">
+      <p className="mt-4 text-center text-xs text-muted-foreground">
         Pago seguro con Wompi. Impuestos incluidos.
-      </p> */}
+      </p>
     </div>
   )
 }

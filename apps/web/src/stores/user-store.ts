@@ -80,7 +80,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       const response = await fetch("/api/addresses")
-      if (!response.ok) throw new Error("Error fetching addresses")
+      if (!response.ok) throw new Error((await response.json()).error ?? "Error fetching addresses")
       const addresses = await response.json()
       set({ addresses, loading: false })
     } catch (error) {
@@ -92,7 +92,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       const response = await fetch("/api/orders")
-      if (!response.ok) throw new Error("Error fetching orders")
+      if (!response.ok) throw new Error((await response.json()).error ?? "Error fetching orders")
       const orders = await response.json()
       set({ orders, loading: false })
     } catch (error) {
@@ -108,7 +108,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (!response.ok) throw new Error("Error creating address")
+      if (!response.ok) throw new Error((await response.json()).error ?? "Error creating address")
       const address = await response.json()
       set((state) => ({
         addresses: data.isDefault
@@ -134,7 +134,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      if (!response.ok) throw new Error("Error updating address")
+      if (!response.ok) throw new Error((await response.json()).error ?? "Error updating address")
       const address = await response.json()
       set((state) => ({
         addresses: state.addresses.map((a) =>
@@ -159,7 +159,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const response = await fetch(`/api/addresses/${id}`, {
         method: "DELETE",
       })
-      if (!response.ok) throw new Error("Error deleting address")
+      if (!response.ok) throw new Error((await response.json()).error ?? "Error deleting address")
       set((state) => ({
         addresses: state.addresses.filter((a) => a.id !== id),
         loading: false,

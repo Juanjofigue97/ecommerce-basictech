@@ -103,24 +103,39 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
+  const [toggleError, setToggleError] = useState("")
 
   async function handleToggleSuspend(userId: string, currentStatus: string) {
+    setToggleError("")
     const newStatus = currentStatus === "suspended" ? "active" : "suspended"
-    await fetch(`/api/users/${userId}`, {
+    const res = await fetch(`/api/users/${userId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     })
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      setToggleError(body?.error ?? "Error al actualizar el estado del usuario")
+      return
+    }
     fetchUsers()
   }
 
   async function handleDelete() {
     if (!deleteId) return
     setDeleting(true)
+    setDeleteError("")
     try {
-      await fetch(`/api/users/${deleteId}`, { method: "DELETE" })
+      const res = await fetch(`/api/users/${deleteId}`, { method: "DELETE" })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Error al eliminar el usuario")
+      }
       fetchUsers()
       setDeleteId(null)
+    } catch (err) {
+      setDeleteError((err as Error).message)
     } finally {
       setDeleting(false)
     }
@@ -162,6 +177,8 @@ export default function AdminUsersPage() {
           </Link>
         </Button>
       </div>
+
+      {toggleError && <p className="text-sm text-destructive">{toggleError}</p>}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -401,12 +418,15 @@ export default function AdminUsersPage() {
         </Card>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={() => { setDeleteId(null); setDeleteError("") }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer.
+              {deleteError && (
+                <span className="mt-2 block font-medium text-destructive">{deleteError}</span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
