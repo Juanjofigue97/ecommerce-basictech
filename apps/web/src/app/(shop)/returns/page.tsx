@@ -19,39 +19,38 @@ export default function ReturnsPage() {
     >
       <h2>Política de devoluciones</h2>
       <p>
-        Tenés <strong>30 días corridos</strong> desde la recepción de tu pedido para solicitar
-        una devolución o cambio. El producto debe estar en su estado original, con el embalaje
-        intacto y todos los accesorios incluidos.
+        Si tu camiseta o par de calzado no te queda o no llegó como esperabas, podés
+        solicitar un cambio o devolución. La prenda debe estar en su estado original, sin
+        uso y con las etiquetas puestas.
       </p>
 
       <h3>¿Cuándo puedo devolver un producto?</h3>
       <ul>
         <li>El producto llegó dañado o defectuoso.</li>
         <li>Recibiste un artículo diferente al que compraste.</li>
-        <li>El producto no funciona correctamente desde el primer uso.</li>
-        <li>Cambio de opinión (aplican condiciones, ver abajo).</li>
+        <li>La talla no corresponde a la que pediste.</li>
+        <li>Cambio de talla o de opinión (aplican condiciones, ver abajo).</li>
       </ul>
 
-      <h3>Cambio de opinión</h3>
+      <h3>Cambio de talla o de opinión</h3>
       <p>
-        Si decidís devolver el producto sin que exista un defecto, el flete de devolución
-        corre por tu cuenta. El reembolso se procesa descontando el costo del envío original.
-        El producto no debe haber sido abierto ni usado.
+        Si necesitás otra talla o decidís devolver el producto sin que exista un defecto,
+        coordinamos el cambio por WhatsApp. En estos casos el costo del envío de la devolución
+        corre por tu cuenta y la prenda no debe haber sido usada ni lavada.
       </p>
 
       <h3>¿Cómo iniciar una devolución?</h3>
       <ol>
-        <li>Iniciá sesión y andá a <strong>Mis Órdenes</strong>.</li>
-        <li>Seleccioná el pedido y hacé clic en <strong>Solicitar devolución</strong>.</li>
-        <li>Completá el motivo y confirmá la solicitud.</li>
-        <li>Te enviamos una etiqueta de envío prepaga (en casos con defecto).</li>
-        <li>Una vez recibido y verificado el producto, procesamos el reembolso.</li>
+        <li>Escribinos por WhatsApp: Camisetas al 315 552 1144 o Calzado al 314 758 0370.</li>
+        <li>Contanos el número de pedido y el motivo de la devolución o cambio.</li>
+        <li>Te indicamos cómo enviarnos el producto o coordinar el cambio en el local.</li>
+        <li>Una vez recibido y verificado el producto, procesamos el cambio o reembolso.</li>
       </ol>
 
       <h3>Tiempos de reembolso</h3>
       <p>
-        El reembolso se acredita en el mismo medio de pago utilizado dentro de{" "}
-        <strong>5 a 10 días hábiles</strong> tras la aprobación de la devolución.
+        El reembolso se acredita en el mismo medio de pago utilizado tras verificar el
+        producto devuelto. Te mantenemos al tanto del proceso por WhatsApp.
       </p>
     </InfoPageLayout>
   )

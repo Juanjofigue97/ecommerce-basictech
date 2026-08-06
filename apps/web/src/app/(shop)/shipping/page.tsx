@@ -19,42 +19,38 @@ export default function ShippingPage() {
     >
       <h2>Opciones de envío</h2>
       <p>
-        Trabajamos con los principales operadores logísticos del país para garantizar que tu
-        pedido llegue en tiempo y forma, sin importar dónde estés.
+        Despachamos pedidos desde nuestro local en Pasto hacia todo Colombia, ya sea que
+        finalices tu compra en línea o la coordines por WhatsApp.
       </p>
 
       <h3>Envío estándar</h3>
       <p>
-        Disponible para todo el país. El plazo de entrega es de <strong>3 a 7 días hábiles</strong>{" "}
-        desde la confirmación del pago. El costo se calcula automáticamente al ingresar tu
-        dirección en el checkout.
-      </p>
-
-      <h3>Envío express</h3>
-      <p>
-        Disponible para CABA y Gran Buenos Aires. Entrega en <strong>24 a 48 hs hábiles</strong>.
-        Tiene un costo adicional que se muestra al seleccionar esta opción.
+        Disponible para todo el país. El costo estándar es de <strong>$15.000 COP</strong> y
+        se calcula automáticamente al ingresar tu dirección en el checkout.
       </p>
 
       <h3>Envío gratis</h3>
       <p>
-        Todos los pedidos que superen los <strong>$50.000</strong> tienen envío gratis a todo
-        el país con la modalidad estándar. La promoción se aplica automáticamente en el
-        checkout.
+        Los pedidos que superen los <strong>$200.000 COP</strong> tienen envío gratis a todo
+        el país. La promoción se aplica automáticamente en el checkout.
+      </p>
+
+      <h3>Retiro en el local</h3>
+      <p>
+        Si estás en Pasto, podés retirar tu pedido directamente en nuestro local frente al
+        Colegio La Normal, coordinando antes por WhatsApp.
       </p>
 
       <h3>Seguimiento del pedido</h3>
       <p>
-        Una vez despachado, vas a recibir un email con el número de seguimiento para rastrear
-        tu envío en tiempo real. También podés consultarlo desde tu perfil en{" "}
-        <strong>Mis Órdenes</strong>.
+        Podés consultar el estado de tu pedido desde tu perfil en <strong>Mis Órdenes</strong>{" "}
+        o escribiéndonos directamente por WhatsApp con tu número de pedido.
       </p>
 
       <h3>Zonas sin cobertura</h3>
       <p>
-        Algunas localidades remotas pueden requerir un plazo mayor o un costo diferenciado.
-        Si tu código postal no aparece al calcular el envío, contactanos para buscar una
-        solución.
+        Si tu municipio no aparece al calcular el envío o tenés dudas sobre la cobertura,
+        escribinos por WhatsApp y buscamos una solución.
       </p>
     </InfoPageLayout>
   )

@@ -10,24 +10,24 @@ const ayudaLinks = [
 
 const faqs = [
   {
-    q: "¿Cómo sé si un producto está en stock?",
-    a: 'En cada página de producto podés ver la disponibilidad. Si dice "En stock" podés comprarlo inmediatamente. Si dice "Sin stock", podés registrarte para recibir una notificación cuando vuelva a estar disponible.',
+    q: "¿Cómo sé qué talla pedir?",
+    a: "Manejamos tallas numéricas para niños (16, 18, 20, etc.) y S, M, L, XL, XXL, XXXL para uniformes de adulto, además de la numeración estándar en calzado. Si tenés dudas sobre cuál te queda, escribinos por WhatsApp y te asesoramos antes de comprar.",
   },
   {
     q: "¿Puedo modificar o cancelar mi pedido?",
-    a: "Podés cancelar o modificar tu pedido siempre que no haya sido despachado. Una vez enviado, ya no es posible hacer cambios — en ese caso tenés que esperar a recibirlo e iniciar una devolución.",
+    a: "Sí, siempre que el pedido no haya sido despachado. Escribinos por WhatsApp lo antes posible indicando tu número de pedido y lo ajustamos.",
   },
   {
-    q: "¿Ofrecen garantía en los productos?",
-    a: "Todos los productos tienen la garantía oficial del fabricante. La mayoría de los equipos incluyen 12 meses de garantía. Ante cualquier inconveniente, podés contactarnos y te asistimos en el proceso.",
+    q: "¿Los productos son originales?",
+    a: "Trabajamos con calzado y uniformes importados de calidad premium. Si tenés dudas sobre un producto puntual, consultanos por WhatsApp antes de comprar.",
   },
   {
-    q: "¿Puedo pagar en cuotas?",
-    a: "Sí, aceptamos cuotas con tarjetas de crédito. Las opciones disponibles (3, 6, 12 cuotas) dependen de tu banco y se muestran en el checkout antes de confirmar el pago.",
+    q: "¿Cómo pago mi pedido?",
+    a: "Podés coordinar tu compra por WhatsApp y definir el medio de pago con nosotros, o pagar con tarjeta directamente en línea cuando esta opción esté habilitada en la tienda.",
   },
   {
-    q: "¿Hacen envíos al interior del país?",
-    a: "Sí, enviamos a todo el territorio argentino. Los plazos y costos varían según la ubicación. Podés calcular el costo de envío directamente en la página del producto o en el carrito.",
+    q: "¿Hacen envíos a todo Colombia?",
+    a: "Sí. El envío estándar cuesta $15.000 COP y es gratis en pedidos desde $200.000 COP. Podés calcular el costo directamente en el carrito.",
   },
   {
     q: "¿Cómo creo una cuenta?",
@@ -35,11 +35,11 @@ const faqs = [
   },
   {
     q: "¿Mi información de pago está segura?",
-    a: "Sí. No almacenamos datos de tarjetas. Todos los pagos se procesan a través de plataformas certificadas con encriptación SSL y cumplimiento PCI DSS.",
+    a: "Sí. No almacenamos datos de tarjetas. Los pagos en línea se procesan a través de una pasarela de pago certificada.",
   },
   {
     q: "¿Tienen local físico?",
-    a: "Por el momento operamos exclusivamente de manera online. Esto nos permite mantener precios más competitivos y llegar a todo el país.",
+    a: "Sí, nuestro local está frente al Colegio La Normal, en Pasto, Nariño. También podés comprar online y coordinar el envío o el retiro en tienda.",
   },
 ]
 

@@ -51,7 +51,7 @@ export default function PrivacyPage() {
       <p>
         No vendemos ni alquilamos tu información personal a terceros. Podemos compartirla
         con operadores logísticos para procesar envíos, con procesadores de pago para
-        transacciones y con servicios de análisis bajo acuerdos de confidencialidad.
+        transacciones en línea y con servicios de análisis bajo acuerdos de confidencialidad.
       </p>
 
       <h2>4. Seguridad</h2>
@@ -64,9 +64,9 @@ export default function PrivacyPage() {
       <h2>5. Tus derechos</h2>
       <p>
         Tenés derecho a acceder, rectificar, eliminar u oponerte al tratamiento de tus datos
-        personales, conforme a la Ley 25.326 de Protección de Datos Personales. Para
-        ejercerlos, escribinos a{" "}
-        <a href="mailto:privacidad@basictechshop.com">privacidad@basictechshop.com</a>.
+        personales, conforme a la normativa colombiana de protección de datos personales.
+        Para ejercerlos, escribinos por WhatsApp o a través de nuestra página de{" "}
+        <a href="/contact">Contacto</a>.
       </p>
 
       <h2>6. Retención de datos</h2>

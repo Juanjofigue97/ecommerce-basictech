@@ -1,5 +1,5 @@
 import { InfoPageLayout } from "@/components/info/InfoPageLayout"
-import { Building2 } from "lucide-react"
+import { Shirt } from "lucide-react"
 
 const empresaLinks = [
   { name: "Sobre Nosotros", href: "/about" },
@@ -10,56 +10,57 @@ export default function AboutPage() {
   return (
     <InfoPageLayout
       title="Sobre Nosotros"
-      subtitle="Conocé quiénes somos, qué nos mueve y por qué elegimos la tecnología como nuestro negocio."
-      icon={Building2}
+      subtitle="Conocé quiénes somos, qué nos mueve y por qué el deporte y la moda urbana son nuestro negocio."
+      icon={Shirt}
       category="Empresa"
       navLinks={empresaLinks}
     >
       <h2>Nuestra historia</h2>
       <p>
-        BasicTechShop nació en 2018 con una idea simple: hacer que la tecnología de calidad
-        sea accesible para todos. Lo que empezó como un pequeño emprendimiento familiar hoy
-        es una plataforma con miles de clientes en todo el país.
+        Somos una tienda de ropa deportiva ubicada en Pasto, frente al Colegio La Normal.
+        Empezamos atendiendo local a local a los hinchas del barrio y hoy también vendemos
+        online, siempre con la misma idea: uniformes importados de calidad premium a un
+        precio justo.
       </p>
 
       <h2>Nuestra misión</h2>
       <p>
-        Acercar la mejor tecnología a las personas, con precios justos, atención honesta y
-        una experiencia de compra que realmente valga la pena. No vendemos lo que tenemos,
-        vendemos lo que sabemos que funciona.
+        Ofrecerte uniformes y calzado deportivo y urbano de calidad, con atención cercana
+        y honesta, para que representes a tu equipo o lleves tu estilo con la mejor pinta.
       </p>
 
-      <h2>¿Por qué elegirnos?</h2>
+      <h2>¿Qué encontrás en la tienda?</h2>
       <ul>
         <li>
-          <strong>Garantía real:</strong> Todos los productos son originales con garantía
-          oficial del fabricante.
+          <strong>⚽ Uniformes importados calidad premium:</strong> Camisetas de selecciones,
+          clubes y ediciones especiales.
         </li>
         <li>
-          <strong>Soporte humano:</strong> Nuestro equipo de soporte son personas reales que
-          conocen los productos que vendemos.
+          <strong>👟 Calzado deportivo y urbano:</strong> Botines, zapatillas y calzado para
+          todos los días.
         </li>
         <li>
-          <strong>Precios transparentes:</strong> Sin letras chicas ni costos ocultos.
+          <strong>Atención cercana:</strong> Te asesoramos por WhatsApp antes de que compres,
+          no solo después.
         </li>
         <li>
-          <strong>Envíos a todo el país:</strong> Llegamos a cada rincón de Argentina.
+          <strong>Envíos:</strong> Hacemos envíos dentro de Colombia además de la atención
+          en el local.
         </li>
       </ul>
 
-      <h2>Nuestro equipo</h2>
-      <p>
-        Somos un equipo de más de 20 personas apasionadas por la tecnología. Desde atención
-        al cliente hasta logística, cada área trabaja con el mismo objetivo: que vos tengas
-        la mejor experiencia posible.
-      </p>
-
-      <h2>Responsabilidad y compromiso</h2>
-      <p>
-        Creemos en el comercio responsable. Trabajamos solo con proveedores verificados,
-        respetamos la ley de defensa del consumidor y nos comprometemos a la mejora
-        continua de nuestros procesos.
-      </p>
+      <h2>Visitanos o escribinos</h2>
+      <ul>
+        <li>
+          <strong>📍 Ubicación:</strong> Frente al Colegio La Normal, Pasto.
+        </li>
+        <li>
+          <strong>📲 Camisetas:</strong> 315 552 1144
+        </li>
+        <li>
+          <strong>👟 Calzado:</strong> 314 758 0370
+        </li>
+      </ul>
     </InfoPageLayout>
   )
 }
