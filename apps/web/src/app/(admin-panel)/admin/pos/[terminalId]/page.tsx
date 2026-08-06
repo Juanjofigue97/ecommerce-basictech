@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { usePOSStore } from "@/stores/pos-store"
+import { useSettingsStore } from "@/stores/settings-store"
 import { CustomerModal } from "@/components/pos/CustomerModal"
 import { PaymentModal } from "@/components/pos/PaymentModal"
 import { VariantSelectorModal } from "@/components/pos/VariantSelectorModal"
@@ -44,6 +45,9 @@ export default function POSPage() {
     items, delivery,
     setContext, setCustomer, addItem, removeItem, updateQuantity, clearCart, setDelivery,
   } = usePOSStore()
+
+  const storeSettings = useSettingsStore((state) => state.settings)
+  const fetchSettings = useSettingsStore((state) => state.fetchSettings)
 
   const [session, setSession] = useState<ActiveSession | null>(null)
   const [sessionError, setSessionError] = useState("")
@@ -86,6 +90,8 @@ export default function POSPage() {
       .catch(() => setSessionError("Error al cargar la sesión"))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminalId, ctxTerminalId, setContext, clearCart])
+
+  useEffect(() => { fetchSettings() }, [fetchSettings])
 
   // Load categories
   useEffect(() => {
@@ -195,6 +201,8 @@ export default function POSPage() {
       change: paymentData.receivedAmount != null ? paymentData.receivedAmount - paymentData.total : undefined,
       terminal: session.terminal.name,
       cashier: session.user.name,
+      storeName: storeSettings?.name,
+      storeLogo: storeSettings?.logo,
     })
   }
 

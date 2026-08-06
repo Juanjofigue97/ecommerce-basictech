@@ -19,6 +19,7 @@ export interface ReceiptData {
   terminal?: string
   cashier?: string
   storeName?: string
+  storeLogo?: string | null
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -39,6 +40,24 @@ function formatDate(iso: string) {
     day: "2-digit", month: "2-digit", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   }).format(new Date(iso))
+}
+
+function loadImageAsDataUrl(src: string): Promise<{ dataUrl: string; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      const canvas = document.createElement("canvas")
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const ctx = canvas.getContext("2d")
+      if (!ctx) { reject(new Error("no canvas context")); return }
+      ctx.drawImage(img, 0, 0)
+      resolve({ dataUrl: canvas.toDataURL("image/png"), width: img.naturalWidth, height: img.naturalHeight })
+    }
+    img.onerror = reject
+    img.src = src
+  })
 }
 
 interface Props {
@@ -82,6 +101,21 @@ export function ReceiptModal({ open, onClose, data }: Props) {
     }
 
     doc.setFontSize(9)
+
+    if (data.storeLogo) {
+      try {
+        const { dataUrl, width, height } = await loadImageAsDataUrl(data.storeLogo)
+        const maxWidth = 40
+        const maxHeight = 20
+        const ratio = Math.min(maxWidth / width, maxHeight / height)
+        const w = width * ratio
+        const h = height * ratio
+        doc.addImage(dataUrl, "PNG", (pageWidth - w) / 2, y, w, h)
+        y += h + 2
+      } catch {
+        // logo failed to load — fall back to text-only header
+      }
+    }
 
     line(data.storeName ?? "GoalKit", "center", true)
     doc.setFontSize(7)
@@ -142,6 +176,7 @@ export function ReceiptModal({ open, onClose, data }: Props) {
             .row { display: flex; justify-content: space-between; margin: 2px 0; }
             .separator { border-top: 1px dashed #000; margin: 6px 0; }
             .total-row { font-size: 14px; font-weight: bold; }
+            img { display: block; max-height: 40px; margin: 0 auto 4px; }
           </style>
         </head>
         <body>${content.innerHTML}</body>
@@ -164,6 +199,10 @@ export function ReceiptModal({ open, onClose, data }: Props) {
         <div id="receipt-printable" className="font-mono text-xs space-y-1">
           {/* Header */}
           <div className="text-center space-y-0.5 pb-2">
+            {data.storeLogo && (
+              // plain <img> (not next/image): this div's innerHTML is copied into a raw document.write() popup in handlePrint()
+              <img src={data.storeLogo} alt="" className="mx-auto h-10 w-auto object-contain mb-1" />
+            )}
             <p className="font-bold text-base">{data.storeName ?? "GoalKit"}</p>
             <p className="text-muted-foreground">{formatDate(data.date)}</p>
             <p className="font-semibold">{data.orderNumber}</p>
