@@ -33,6 +33,11 @@ const settingsSchema = z.object({
   address: z.string().min(1, { error: "La direccion es requerida" }),
   description: z.string().min(1, { error: "La descripcion es requerida" }),
   currency: z.string(),
+  paymentMethod: z.enum(["wompi", "manual"]),
+  facebookUrl: z.string().optional(),
+  instagramUrl: z.string().optional(),
+  twitterUrl: z.string().optional(),
+  youtubeUrl: z.string().optional(),
 })
 
 type SettingsFormData = z.infer<typeof settingsSchema>
@@ -108,6 +113,11 @@ export default function AdminSettingsPage() {
         address: settings.address,
         description: settings.description,
         currency: settings.currency,
+        paymentMethod: settings.paymentMethod as "wompi" | "manual",
+        facebookUrl: settings.facebookUrl ?? "",
+        instagramUrl: settings.instagramUrl ?? "",
+        twitterUrl: settings.twitterUrl ?? "",
+        youtubeUrl: settings.youtubeUrl ?? "",
       })
     }
   }, [settings, reset])
@@ -225,6 +235,88 @@ export default function AdminSettingsPage() {
                   </Select>
                 )}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Método de pago</CardTitle>
+            <CardDescription>
+              Define cómo se procesan los pagos al finalizar la compra
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-w-xs space-y-2">
+              <Label>Método de pago</Label>
+              <Controller
+                name="paymentMethod"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">
+                        Manual (pedido pendiente de confirmación)
+                      </SelectItem>
+                      <SelectItem value="wompi">Wompi (pasarela de pago en línea)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                En modo manual el pedido se registra y se muestra una confirmación, sin cobrar
+                el pago en línea. Recomendado hasta que configures las credenciales de Wompi.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Redes Sociales</CardTitle>
+            <CardDescription>
+              Enlaces mostrados en el pie de página de la tienda
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="facebookUrl">Facebook</Label>
+                <Input
+                  id="facebookUrl"
+                  placeholder="https://facebook.com/tu-tienda"
+                  {...register("facebookUrl")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="instagramUrl">Instagram</Label>
+                <Input
+                  id="instagramUrl"
+                  placeholder="https://instagram.com/tu-tienda"
+                  {...register("instagramUrl")}
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="twitterUrl">Twitter / X</Label>
+                <Input
+                  id="twitterUrl"
+                  placeholder="https://x.com/tu-tienda"
+                  {...register("twitterUrl")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="youtubeUrl">YouTube</Label>
+                <Input
+                  id="youtubeUrl"
+                  placeholder="https://youtube.com/@tu-tienda"
+                  {...register("youtubeUrl")}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

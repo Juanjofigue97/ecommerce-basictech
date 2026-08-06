@@ -574,14 +574,19 @@ model HeroSlide {
 }
 
 model StoreSettings {
-  id          String  @id @default("singleton")
-  name        String  @default("BasicTechShop")
-  email       String  @default("info@basictechshop.com")
-  phone       String  @default("+57 300 000 0000")
-  address     String  @default("Calle 72 #10-34, Bogotá")
-  description String  @default("Tu tienda de tecnología y computación de confianza")
-  logo        String?
-  currency    String  @default("cop")
+  id            String  @id @default("singleton")
+  name          String  @default("BasicTechShop")
+  email         String  @default("info@basictechshop.com")
+  phone         String  @default("+57 300 000 0000")
+  address       String  @default("Calle 72 #10-34, Bogotá")
+  description   String  @default("Tu tienda de tecnología y computación de confianza")
+  logo          String?
+  currency      String  @default("cop")
+  paymentMethod String  @default("manual")
+  facebookUrl   String?
+  instagramUrl  String?
+  twitterUrl    String?
+  youtubeUrl    String?
 
   updatedAt DateTime @updatedAt
 

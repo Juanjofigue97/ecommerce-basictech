@@ -79,6 +79,11 @@ export interface StoreSettings {
   description: string
   logo: string | null
   currency: string
+  paymentMethod: string
+  facebookUrl: string | null
+  instagramUrl: string | null
+  twitterUrl: string | null
+  youtubeUrl: string | null
   updatedAt: string
 }
 
