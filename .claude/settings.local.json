@@ -4,7 +4,28 @@
       "Bash(docker-compose up:*)",
       "Bash(npm install:*)",
       "Bash(claude mcp add TestSprite --env API_KEY=sk-user-sTg1yVmkRRFlQmJ14s8bA0xoFFP_5G8pebO92N6I_pwl3b3SXkKMxK9qs_nA8vmBoS9fUfNuwkLNlyNe1NKofsdQ7xDd2GmArrVH-BwjS7s4fEHVtBTQPHI_O9_se9G3_vQ -- npx @testsprite/testsprite-mcp@latest)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(npm ls *)",
+      "Bash(npm install *)",
+      "Bash(git mv *)",
+      "Bash(npm run *)",
+      "Bash(timeout 12 npm run dev)",
+      "Read(//tmp/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'docs: update README and docs to reflect monorepo structure *)",
+      "Bash(git commit -m 'refactor: restructure repo into npm workspaces monorepo *)",
+      "Bash(npx eslint *)",
+      "Bash(npx tsc *)",
+      "Bash(rg -rn \"fetch\\\\\\(.?/api/attributes\" /Users/juanjofigue/Develop/SideProjects/ecommerce-basictech/apps/web/src)",
+      "Bash(rg -n \"isActive\" /Users/juanjofigue/Develop/SideProjects/ecommerce-basictech/apps/web/src/app/\\\\\\(admin-panel\\\\\\)/admin/pos -r \"\")",
+      "Bash(rg -n \"fetch\\\\\\(.?/api/orders.?, \\\\{|fetch\\\\\\(.?/api/orders.,\\\\s*\\\\{\" /Users/juanjofigue/Develop/SideProjects/ecommerce-basictech/apps/web/src -r \"\" -g '!*.route.ts')",
+      "Bash(rg -rln \"'/api/orders'|\\\\\"/api/orders\\\\\"\" /Users/juanjofigue/Develop/SideProjects/ecommerce-basictech/apps/web/src)",
+      "Bash(rg -rn \"CheckoutButton\" /Users/juanjofigue/Develop/SideProjects/ecommerce-basictech/apps/web/src)",
+      "mcp__plugin_engram_engram__mem_save",
+      "mcp__plugin_engram_engram__mem_judge",
+      "Bash(git commit -m ' *)",
+      "Bash(bat -n apps/web/src/services/payment.ts)",
+      "Bash(fd -t f '.*\\\\.\\(test\\\\.tsx|test\\\\.ts\\)$' /Users/juanjofigue/Develop/SideProjects/ecommerce-basictech/apps/web/src)"
     ]
   }
 }
