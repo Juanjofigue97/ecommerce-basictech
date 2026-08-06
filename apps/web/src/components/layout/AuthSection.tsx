@@ -52,12 +52,6 @@ export function AuthSection() {
               Mis Pedidos
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/profile/settings" className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              Configuración
-            </Link>
-          </DropdownMenuItem>
           {session.user?.roleName === "Administrador" && (
             <>
               <DropdownMenuSeparator />
