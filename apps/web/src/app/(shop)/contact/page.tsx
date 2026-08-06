@@ -1,41 +1,54 @@
 import { InfoPageLayout } from "@/components/info/InfoPageLayout"
-import { Mail, Phone, MapPin, Clock } from "lucide-react"
+import { Mail, Phone, MapPin, MessageCircle } from "lucide-react"
 import { ContactForm } from "@/components/info/ContactForm"
 import { MessageSquare } from "lucide-react"
+import { prisma } from "@/lib/prisma"
 
 const empresaLinks = [
   { name: "Sobre Nosotros", href: "/about" },
   { name: "Contacto", href: "/contact" },
 ]
 
-const contactItems = [
-  {
-    icon: Mail,
-    label: "Email",
-    value: "soporte@basictechshop.com",
-    detail: "Respondemos en menos de 24 hs hábiles",
-  },
-  {
-    icon: Phone,
-    label: "Teléfono",
-    value: "0800-555-TECH",
-    detail: "Lunes a viernes de 9 a 18 hs",
-  },
-  {
-    icon: MapPin,
-    label: "Ubicación",
-    value: "Ciudad Autónoma de Buenos Aires",
-    detail: "Argentina",
-  },
-  {
-    icon: Clock,
-    label: "Horario de atención",
-    value: "Lunes a viernes, 9:00 – 18:00",
-    detail: "No atendemos fines de semana ni feriados",
-  },
-]
+// Reads StoreSettings live on every request — must not be statically prerendered
+// at build time, when no database is reachable (e.g. inside the Docker build stage).
+export const dynamic = "force-dynamic"
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const settings = await prisma.storeSettings.findUnique({ where: { id: "singleton" } })
+
+  const contactItems = [
+    {
+      icon: Mail,
+      label: "Email",
+      value: settings?.email ?? "Configurá un email en el panel de administración",
+      detail: "Te respondemos por este medio",
+    },
+    {
+      icon: Phone,
+      label: "Teléfono",
+      value: settings?.phone ?? "Configurá un teléfono en el panel de administración",
+      detail: "Escribinos y te respondemos a la brevedad",
+    },
+    {
+      icon: MapPin,
+      label: "Ubicación",
+      value: settings?.address ?? "Configurá una dirección en el panel de administración",
+      detail: settings?.name,
+    },
+    {
+      icon: MessageCircle,
+      label: "WhatsApp Camisetas",
+      value: "315 552 1144",
+      detail: "Consultas sobre camisetas",
+    },
+    {
+      icon: MessageCircle,
+      label: "WhatsApp Calzado",
+      value: "314 758 0370",
+      detail: "Consultas sobre calzado",
+    },
+  ]
+
   return (
     <InfoPageLayout
       title="Contacto"
@@ -60,16 +73,14 @@ export default function ContactPage() {
                 {item.label}
               </p>
               <p className="mt-0.5 text-sm font-semibold text-foreground">{item.value}</p>
-              <p className="text-xs text-muted-foreground">{item.detail}</p>
+              {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
             </div>
           </div>
         ))}
       </div>
 
       <h2>Envianos un mensaje</h2>
-      <p>
-        Completá el formulario y te contactamos dentro de las próximas 24 horas hábiles.
-      </p>
+      <p>Completá el formulario y te contactamos a la brevedad.</p>
 
       <div className="not-prose mt-4">
         <ContactForm />

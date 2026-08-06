@@ -21,6 +21,7 @@ type FormData = z.infer<typeof schema>
 
 export function ContactForm() {
   const [sent, setSent] = useState(false)
+  const [errorMsg, setErrorMsg] = useState("")
 
   const {
     register,
@@ -28,9 +29,25 @@ export function ContactForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  async function onSubmit(_data: FormData) {
-    await new Promise((r) => setTimeout(r, 1000))
-    setSent(true)
+  async function onSubmit(data: FormData) {
+    setErrorMsg("")
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const { error } = await response.json()
+        setErrorMsg(error || "No se pudo enviar el mensaje. Intentá nuevamente.")
+        return
+      }
+
+      setSent(true)
+    } catch {
+      setErrorMsg("No se pudo enviar el mensaje. Intentá nuevamente.")
+    }
   }
 
   if (sent) {
@@ -39,7 +56,7 @@ export function ContactForm() {
         <CheckCircle2 className="h-10 w-10 text-green-500" />
         <p className="font-semibold">¡Mensaje enviado!</p>
         <p className="text-sm text-muted-foreground">
-          Te vamos a responder dentro de las próximas 24 hs hábiles.
+          Te vamos a responder a la brevedad.
         </p>
       </div>
     )
@@ -76,6 +93,8 @@ export function ContactForm() {
         />
         {errors.message && <p className="text-xs text-destructive">{errors.message.message}</p>}
       </div>
+
+      {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
 
       <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
