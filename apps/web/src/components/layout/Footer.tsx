@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { unstable_cache } from "next/cache"
 import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
@@ -61,25 +62,59 @@ export async function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">{storeInitials}</span>
-              </div>
+              {settings?.logo ? (
+                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg">
+                  <Image src={settings.logo} alt={storeName} fill className="object-contain" />
+                </div>
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                  <span className="text-sm font-bold text-primary-foreground">{storeInitials}</span>
+                </div>
+              )}
               <span className="text-xl font-bold">{storeName}</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground">{description}</p>
             <div className="mt-4 flex gap-3">
-              <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Facebook className="h-5 w-5" />
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Twitter className="h-5 w-5" />
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Instagram className="h-5 w-5" />
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Youtube className="h-5 w-5" />
-              </Link>
+              {settings?.facebookUrl && (
+                <Link
+                  href={settings.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Facebook className="h-5 w-5" />
+                </Link>
+              )}
+              {settings?.twitterUrl && (
+                <Link
+                  href={settings.twitterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Twitter className="h-5 w-5" />
+                </Link>
+              )}
+              {settings?.instagramUrl && (
+                <Link
+                  href={settings.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Instagram className="h-5 w-5" />
+                </Link>
+              )}
+              {settings?.youtubeUrl && (
+                <Link
+                  href={settings.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Youtube className="h-5 w-5" />
+                </Link>
+              )}
             </div>
           </div>
 
