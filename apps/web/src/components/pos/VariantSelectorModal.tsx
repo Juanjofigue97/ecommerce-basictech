@@ -87,6 +87,8 @@ export function VariantSelectorModal({
       initial[attrName] = firstWithStock ?? values[0]
     }
 
+    // Seeding the default selection when the modal opens for a new set of variants
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelected(initial)
   }, [open, variants, variantAttributeNames])
 

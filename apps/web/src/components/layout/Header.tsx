@@ -28,6 +28,8 @@ export function Header() {
   const { settings, fetchSettings } = useSettingsStore()
 
   useEffect(() => {
+    // Hydration-safe "on client" flag — inherently needs to setState once on mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
     fetchSettings()
   }, [])

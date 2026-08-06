@@ -27,6 +27,8 @@ export function SearchBar({ className }: { className?: string }) {
 
   useEffect(() => {
     if (debouncedQuery.trim().length < 2) {
+      // Clearing suggestions when the debounced query no longer qualifies for a search
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSuggestions([])
       setOpen(false)
       return

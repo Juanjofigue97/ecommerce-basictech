@@ -45,6 +45,8 @@ export function FilterSidebar({ filters, onFiltersChange, facetCounts, hideClear
 
   useEffect(() => {
     if (filters.categories.length !== 1) {
+      // Clearing attribute filters when the category selection no longer qualifies
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCategoryAttributes([])
       return
     }
