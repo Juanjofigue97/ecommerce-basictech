@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Loader2, CreditCard, LogIn } from "lucide-react"
+import { Loader2, CreditCard, LogIn, Ban } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useCartStore } from "@/stores/cart-store"
+import { useSettingsStore } from "@/stores/settings-store"
 
 interface CheckoutButtonProps {
   addressId?: string
@@ -14,11 +16,25 @@ interface CheckoutButtonProps {
 
 export function CheckoutButton({ addressId, disabled }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
+  const [unavailableOpen, setUnavailableOpen] = useState(false)
   const items = useCartStore((state) => state.items)
   const { data: session, status } = useSession()
   const router = useRouter()
+  const settings = useSettingsStore((state) => state.settings)
+  const fetchSettings = useSettingsStore((state) => state.fetchSettings)
+
+  useEffect(() => {
+    fetchSettings()
+  }, [fetchSettings])
+
+  const isManual = settings?.paymentMethod === "manual"
 
   const handleCheckout = async () => {
+    if (isManual) {
+      setUnavailableOpen(true)
+      return
+    }
+
     if (!session) {
       router.push("/login?callbackUrl=/cart")
       return
@@ -58,28 +74,50 @@ export function CheckoutButton({ addressId, disabled }: CheckoutButtonProps) {
   const isLoading = loading || status === "loading"
 
   return (
-    <Button
-      onClick={handleCheckout}
-      disabled={isLoading || items.length === 0 || disabled}
-      className="w-full"
-      size="lg"
-    >
-      {isLoading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Procesando...
-        </>
-      ) : !session ? (
-        <>
-          <LogIn className="mr-2 h-4 w-4" />
-          Iniciar sesión para pagar
-        </>
-      ) : (
-        <>
-          <CreditCard className="mr-2 h-4 w-4" />
-          Pagar con Wompi
-        </>
-      )}
-    </Button>
+    <>
+      <Button
+        onClick={handleCheckout}
+        disabled={isLoading || items.length === 0 || disabled}
+        className="w-full"
+        size="lg"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Procesando...
+          </>
+        ) : isManual ? (
+          <>
+            <Ban className="mr-2 h-4 w-4" />
+            Pago no disponible
+          </>
+        ) : !session ? (
+          <>
+            <LogIn className="mr-2 h-4 w-4" />
+            Iniciar sesión para pagar
+          </>
+        ) : (
+          <>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Pagar con Wompi
+          </>
+        )}
+      </Button>
+
+      <Dialog open={unavailableOpen} onOpenChange={setUnavailableOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pago no disponible</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Por ahora solo podés hacer tu pedido por WhatsApp. Usá el botón de abajo para
+            coordinar tu compra.
+          </p>
+          <Button onClick={() => setUnavailableOpen(false)} className="w-full">
+            Entendido
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

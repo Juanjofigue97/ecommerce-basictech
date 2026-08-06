@@ -1,11 +1,13 @@
 "use client"
 
+import { useEffect } from "react"
 import { Truck } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { CartItem } from "@/types"
 import { CheckoutButton } from "./CheckoutButton"
 import { WhatsAppOrderButton } from "./WhatsAppOrderButton"
 import { useCurrency } from "@/hooks/use-currency"
+import { useSettingsStore } from "@/stores/settings-store"
 
 interface CartSummaryProps {
   items: CartItem[]
@@ -13,6 +15,14 @@ interface CartSummaryProps {
 
 export function CartSummary({ items }: CartSummaryProps) {
   const formatPrice = useCurrency()
+  const settings = useSettingsStore((s) => s.settings)
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings)
+
+  useEffect(() => {
+    fetchSettings()
+  }, [fetchSettings])
+
+  const isWompi = settings?.paymentMethod === "wompi"
   const subtotal = items.reduce(
     (acc, item) => acc + item.product.price * item.quantity,
     0
@@ -52,12 +62,14 @@ export function CartSummary({ items }: CartSummaryProps) {
       </div>
 
       <div className="mt-6 space-y-3">
-        <CheckoutButton />
+        {isWompi && <CheckoutButton />}
         <WhatsAppOrderButton />
       </div>
 
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        Pago seguro con Wompi. Impuestos incluidos.
+        {isWompi
+          ? "Pago seguro con Wompi. Impuestos incluidos."
+          : "Coordinamos el pago por WhatsApp al confirmar tu pedido."}
       </p>
     </div>
   )

@@ -40,6 +40,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const storeSettings = await prisma.storeSettings.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton" },
+      update: {},
+    })
+
+    if (storeSettings.paymentMethod !== "wompi") {
+      return NextResponse.json(
+        { error: "El pago en línea no está disponible por ahora. Hacé tu pedido por WhatsApp." },
+        { status: 403 }
+      )
+    }
+
     // Resolve authoritative price, name and stock from the DB — never trust the client
     const productIds = [...new Set(items.map((i) => i.id))]
     const products = await prisma.product.findMany({

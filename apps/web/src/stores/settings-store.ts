@@ -4,6 +4,7 @@ interface PublicStoreSettings {
   name: string
   description: string
   logo: string | null
+  paymentMethod: string
 }
 
 interface SettingsState {
@@ -20,7 +21,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const res = await fetch("/api/admin/settings")
       if (!res.ok) return
       const data = await res.json()
-      set({ settings: { name: data.name, description: data.description, logo: data.logo ?? null } })
+      set({ settings: { name: data.name, description: data.description, logo: data.logo ?? null, paymentMethod: data.paymentMethod } })
     } catch {
       // silently fail — UI falls back to hardcoded values
     }
