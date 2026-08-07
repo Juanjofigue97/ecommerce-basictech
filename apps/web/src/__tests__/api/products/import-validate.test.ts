@@ -10,6 +10,16 @@ vi.mock("@/lib/prisma", () => ({
   },
 }))
 
+// requireAdmin() calls next-auth's auth(), which needs a real request-rendering
+// scope it doesn't have here — stub it as an already-authorized admin so the
+// route's own logic (the thing under test) is what actually runs.
+vi.mock("@/lib/api-auth", () => ({
+  requireAdmin: vi.fn().mockResolvedValue({
+    session: { user: { roleId: "admin-role", roleName: "Administrador" } },
+    response: null,
+  }),
+}))
+
 import { POST } from "@/app/api/products/import/validate/route"
 import { prisma } from "@/lib/prisma"
 import { MAX_ROWS } from "@/lib/products/import-types"
