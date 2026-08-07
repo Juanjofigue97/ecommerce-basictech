@@ -20,7 +20,6 @@ export interface Product {
   stock: number
   isNew: boolean
   isFeatured: boolean
-  rating: number
   variants?: ProductVariantItem[]
   variantAttributeNames?: string[]
 }
@@ -52,7 +51,7 @@ export interface FilterState {
   categories: string[]
   brands: string[]
   priceRange: [number, number]
-  sortBy: 'popular' | 'price-asc' | 'price-desc' | 'newest' | 'rating'
+  sortBy: 'popular' | 'price-asc' | 'price-desc' | 'newest'
   // attributeId -> selected valueIds (AND between attributes, OR within)
   attributeValues: Record<string, string[]>
   search?: string

@@ -33,7 +33,6 @@ export function transformProduct(product: ProductWithRelations): Product {
     stock: product.stock,
     isNew: product.isNew,
     isFeatured: product.isFeatured,
-    rating: 4.5, // Default rating - could be calculated from reviews in the future
   }
 }
 

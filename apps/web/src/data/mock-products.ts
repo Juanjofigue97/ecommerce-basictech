@@ -48,7 +48,6 @@ export const products: Product[] = [
     stock: 5,
     isNew: true,
     isFeatured: true,
-    rating: 4.8,
   },
   {
     id: "2",
@@ -70,7 +69,6 @@ export const products: Product[] = [
     stock: 15,
     isNew: true,
     isFeatured: true,
-    rating: 4.9,
   },
   {
     id: "3",
@@ -93,7 +91,6 @@ export const products: Product[] = [
     stock: 8,
     isNew: false,
     isFeatured: true,
-    rating: 4.7,
   },
   {
     id: "4",
@@ -116,7 +113,6 @@ export const products: Product[] = [
     stock: 3,
     isNew: false,
     isFeatured: true,
-    rating: 4.6,
   },
   {
     id: "5",
@@ -138,7 +134,6 @@ export const products: Product[] = [
     stock: 12,
     isNew: true,
     isFeatured: false,
-    rating: 4.5,
   },
   {
     id: "6",
@@ -160,7 +155,6 @@ export const products: Product[] = [
     stock: 25,
     isNew: false,
     isFeatured: false,
-    rating: 4.8,
   },
   {
     id: "7",
@@ -182,7 +176,6 @@ export const products: Product[] = [
     stock: 18,
     isNew: true,
     isFeatured: true,
-    rating: 4.7,
   },
   {
     id: "8",
@@ -204,7 +197,6 @@ export const products: Product[] = [
     stock: 10,
     isNew: false,
     isFeatured: false,
-    rating: 4.6,
   },
   {
     id: "9",
@@ -227,7 +219,6 @@ export const products: Product[] = [
     stock: 7,
     isNew: false,
     isFeatured: true,
-    rating: 4.9,
   },
   {
     id: "10",
@@ -249,7 +240,6 @@ export const products: Product[] = [
     stock: 6,
     isNew: true,
     isFeatured: false,
-    rating: 4.7,
   },
   {
     id: "11",
@@ -271,7 +261,6 @@ export const products: Product[] = [
     stock: 14,
     isNew: false,
     isFeatured: false,
-    rating: 4.5,
   },
   {
     id: "12",
@@ -293,7 +282,6 @@ export const products: Product[] = [
     stock: 30,
     isNew: true,
     isFeatured: false,
-    rating: 4.6,
   },
 ]
 

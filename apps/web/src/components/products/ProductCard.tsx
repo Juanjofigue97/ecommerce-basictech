@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Heart, ShoppingCart, Star, Check } from "lucide-react"
+import { Heart, ShoppingCart, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -347,12 +347,6 @@ export function ProductCard({ product }: ProductCardProps) {
             </table>
           </div>
         )}
-
-        {/* Rating */}
-        <div className="mt-2 flex items-center gap-1">
-          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-          <span className="text-sm font-medium">{product.rating}</span>
-        </div>
 
         {/* Price */}
         <div className="mt-2 flex items-baseline gap-2">
