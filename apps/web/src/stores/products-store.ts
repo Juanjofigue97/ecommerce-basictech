@@ -6,6 +6,7 @@ interface ProductsState {
   categories: Category[]
   brands: Brand[]
   featuredProducts: Product[]
+  featuredLoading: boolean
   filters: FilterState
   loading: boolean
   error: string | null
@@ -31,6 +32,7 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
   categories: [],
   brands: [],
   featuredProducts: [],
+  featuredLoading: true,
   filters: defaultFilters,
   loading: false,
   error: null,
@@ -67,13 +69,15 @@ export const useProductsStore = create<ProductsState>((set, get) => ({
   },
 
   fetchFeaturedProducts: async () => {
+    set({ featuredLoading: true })
     try {
       const response = await fetch("/api/products?featured=true&limit=8")
       if (!response.ok) throw new Error("Failed to fetch featured products")
       const data = await response.json()
-      set({ featuredProducts: data.products })
+      set({ featuredProducts: data.products, featuredLoading: false })
     } catch (error) {
       console.error("Error fetching featured products:", error)
+      set({ featuredLoading: false })
     }
   },
 
