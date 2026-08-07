@@ -84,6 +84,7 @@ export interface StoreSettings {
   instagramUrl: string | null
   twitterUrl: string | null
   youtubeUrl: string | null
+  tiktokUrl: string | null
   updatedAt: string
 }
 

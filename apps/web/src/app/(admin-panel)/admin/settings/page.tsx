@@ -38,6 +38,7 @@ const settingsSchema = z.object({
   instagramUrl: z.string().optional(),
   twitterUrl: z.string().optional(),
   youtubeUrl: z.string().optional(),
+  tiktokUrl: z.string().optional(),
 })
 
 type SettingsFormData = z.infer<typeof settingsSchema>
@@ -118,6 +119,7 @@ export default function AdminSettingsPage() {
         instagramUrl: settings.instagramUrl ?? "",
         twitterUrl: settings.twitterUrl ?? "",
         youtubeUrl: settings.youtubeUrl ?? "",
+        tiktokUrl: settings.tiktokUrl ?? "",
       })
     }
   }, [settings, reset])
@@ -315,6 +317,16 @@ export default function AdminSettingsPage() {
                   id="youtubeUrl"
                   placeholder="https://youtube.com/@tu-tienda"
                   {...register("youtubeUrl")}
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="tiktokUrl">TikTok</Label>
+                <Input
+                  id="tiktokUrl"
+                  placeholder="https://www.tiktok.com/@tuusuario"
+                  {...register("tiktokUrl")}
                 />
               </div>
             </div>

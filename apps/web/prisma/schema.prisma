@@ -587,6 +587,7 @@ model StoreSettings {
   instagramUrl  String?
   twitterUrl    String?
   youtubeUrl    String?
+  tiktokUrl     String?
 
   updatedAt DateTime @updatedAt
 
