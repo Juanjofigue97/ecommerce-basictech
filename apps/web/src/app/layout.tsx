@@ -1,8 +1,22 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { unstable_cache } from "next/cache"
 import "./globals.css"
 import { ThemeProvider } from "@/components/providers/ThemeProvider"
 import { SessionProvider } from "@/components/providers/SessionProvider"
+import { prisma } from "@/lib/prisma"
+
+const getStoreMetadata = unstable_cache(
+  async () => {
+    try {
+      return await prisma.storeSettings.findUnique({ where: { id: "singleton" } })
+    } catch {
+      return null
+    }
+  },
+  ["root-metadata"],
+  { revalidate: 3600, tags: ["store-settings"] },
+)
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,9 +28,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-export const metadata: Metadata = {
-  title: "BasicTechShop - Tu Tienda de Tecnologia",
-  description: "Los mejores productos de computacion: PCs, monitores, teclados, mouse y mas. Envio a todo Peru.",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getStoreMetadata()
+
+  const name = settings?.name ?? "Nahiara Sport"
+  const description =
+    settings?.description ??
+    "Uniformes importados y calzado deportivo y urbano, calidad premium, en Pasto."
+
+  return {
+    title: `${name} - Uniformes y Calzado Deportivo`,
+    description,
+  }
 }
 
 export default function RootLayout({
