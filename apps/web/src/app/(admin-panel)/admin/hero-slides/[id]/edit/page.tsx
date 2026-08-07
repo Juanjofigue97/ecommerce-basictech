@@ -16,15 +16,20 @@ import { Switch } from "@/components/ui/switch"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
+import { ImageUpload } from "@/components/admin/ImageUpload"
 import { useHeroSlidesStore } from "@/stores/hero-slides-store"
 import { GRADIENT_OPTIONS } from "../../constants"
+
+interface UploadedImage {
+  url: string
+  publicId: string
+}
 
 const schema = z.object({
   title: z.string().min(1, "El título es requerido"),
   subtitle: z.string().optional(),
   badge: z.string().optional(),
   description: z.string().optional(),
-  image: z.string().url("Debe ser una URL válida"),
   gradient: z.string().min(1, "Selecciona un fondo"),
   ctaText: z.string().min(1, "El texto del botón es requerido"),
   ctaHref: z.string().min(1, "El enlace es requerido"),
@@ -40,6 +45,7 @@ export default function EditHeroSlidePage() {
   const { updateSlide } = useHeroSlidesStore()
   const [saving, setSaving] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
+  const [images, setImages] = useState<UploadedImage[]>([])
 
   const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -48,7 +54,7 @@ export default function EditHeroSlidePage() {
   useEffect(() => {
     fetch(`/api/admin/hero-slides`)
       .then((r) => r.json())
-      .then((slides: (FormData & { id: string })[]) => {
+      .then((slides: (FormData & { id: string; image: string })[]) => {
         const slide = slides.find((s) => s.id === id)
         if (slide) {
           reset({
@@ -56,26 +62,30 @@ export default function EditHeroSlidePage() {
             subtitle: slide.subtitle ?? "",
             badge: slide.badge ?? "",
             description: slide.description ?? "",
-            image: slide.image,
             gradient: slide.gradient,
             ctaText: slide.ctaText,
             ctaHref: slide.ctaHref,
             order: slide.order,
             isActive: slide.isActive,
           })
+          setImages(slide.image ? [{ url: slide.image, publicId: "" }] : [])
         }
         setLoadingData(false)
       })
   }, [id, reset])
 
-  const imageUrl = watch("image")
   const gradient = watch("gradient")
 
   async function onSubmit(data: FormData) {
+    if (!images[0]) {
+      alert("Subí una imagen")
+      return
+    }
     setSaving(true)
     try {
       await updateSlide(id, {
         ...data,
+        image: images[0].url,
         badge: data.badge || null,
         subtitle: data.subtitle || null,
         description: data.description || null,
@@ -140,9 +150,8 @@ export default function EditHeroSlidePage() {
               <CardHeader><CardTitle>Imagen y Fondo</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="image">URL de la imagen *</Label>
-                  <Input id="image" {...register("image")} />
-                  {errors.image && <p className="text-sm text-destructive">{errors.image.message}</p>}
+                  <Label>Imagen *</Label>
+                  <ImageUpload value={images} onChange={setImages} maxImages={1} />
                 </div>
                 <div className="space-y-2">
                   <Label>Color de fondo *</Label>
@@ -215,9 +224,9 @@ export default function EditHeroSlidePage() {
           <div className="space-y-3">
             <p className="text-sm font-medium text-muted-foreground">Vista previa</p>
             <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient || GRADIENT_OPTIONS[0].value} aspect-video`}>
-              {imageUrl && (
+              {images[0] && (
                 <div className="absolute inset-0">
-                  <Image src={imageUrl} alt="" fill className="object-cover opacity-25" />
+                  <Image src={images[0].url} alt="" fill className="object-cover opacity-25" />
                 </div>
               )}
               <div className="relative z-10 flex h-full flex-col justify-center p-6">
