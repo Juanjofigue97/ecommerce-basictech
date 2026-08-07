@@ -76,16 +76,7 @@ export function AuthSection() {
     )
   }
 
-  return (
-    <div className="hidden items-center gap-2 sm:flex">
-      <Link href="/login">
-        <Button variant="outline" size="sm">
-          Ingresar
-        </Button>
-      </Link>
-      <Link href="/register">
-        <Button size="sm">Registrarse</Button>
-      </Link>
-    </div>
-  )
+  // Cuentas de cliente aún no forman parte del flujo (catálogo + WhatsApp por ahora).
+  // El login sigue funcionando en /login para el admin, solo se oculta la entrada visible.
+  return null
 }

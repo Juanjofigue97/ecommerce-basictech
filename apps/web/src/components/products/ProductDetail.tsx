@@ -1,17 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
-import { Heart, ShoppingCart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check } from "lucide-react"
+import { useState } from "react"
+import { ShoppingCart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Product } from "@/types"
 import { useCartStore } from "@/stores/cart-store"
-import { useFavoritesStore } from "@/stores/favorites-store"
 import { useCurrency } from "@/hooks/use-currency"
-import { cn } from "@/lib/utils"
 
 interface ProductVariant {
   id: string
@@ -47,28 +43,6 @@ export function ProductDetail({ product, variants = [], variantAttributes = [] }
     return initial
   })
   const addItem = useCartStore((state) => state.addItem)
-  const router = useRouter()
-  const { data: session } = useSession()
-  const isFavorite = useFavoritesStore((s) => s.isFavorite(product.id))
-  const addFavorite = useFavoritesStore((s) => s.addFavorite)
-  const removeFavorite = useFavoritesStore((s) => s.removeFavorite)
-  const fetchFavorites = useFavoritesStore((s) => s.fetchFavorites)
-
-  useEffect(() => {
-    if (session) fetchFavorites()
-  }, [session, fetchFavorites])
-
-  const handleToggleFavorite = () => {
-    if (!session) {
-      router.push(`/login?callbackUrl=/products/${product.slug}`)
-      return
-    }
-    if (isFavorite) {
-      removeFavorite(product.id).catch(() => {})
-    } else {
-      addFavorite(product).catch(() => {})
-    }
-  }
   const formatPrice = useCurrency()
 
   const hasVariants = variantAttributes.length > 0
@@ -238,12 +212,6 @@ export function ProductDetail({ product, variants = [], variantAttributes = [] }
               <><ShoppingCart className="mr-2 h-4 w-4" />
               {hasVariants && !allAttributesSelected ? "Seleccioná las opciones" : "Agregar al Carrito"}</>
             )}
-          </Button>
-          <Button variant="outline" size="lg" onClick={handleToggleFavorite}>
-            <Heart className={cn("h-4 w-4", isFavorite && "fill-destructive text-destructive")} />
-            <span className="sr-only">
-              {isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-            </span>
           </Button>
         </div>
       </div>
