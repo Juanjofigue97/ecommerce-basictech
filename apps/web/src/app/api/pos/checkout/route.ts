@@ -6,15 +6,23 @@ interface CheckoutItem {
   productId: string
   variantId?: string
   quantity: number
+  wholesale?: boolean
+}
+
+interface LayawayInput {
+  deposit: number
+  deliverNow: boolean
+  holdDays?: number
 }
 
 export async function POST(request: NextRequest) {
-  const { response: authError } = await requireAdmin()
+  const { session: authSession, response: authError } = await requireAdmin()
   if (authError) return authError
 
   try {
     const body = await request.json()
     const { terminalId, sessionId, customerId, items, paymentMethod, tip, receivedAmount, delivery } = body
+    const layaway = body.layaway as LayawayInput | undefined
 
     if (!terminalId || !sessionId || !customerId) {
       return NextResponse.json({ error: "Faltan datos requeridos" }, { status: 400 })
@@ -30,8 +38,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const session = await prisma.cashSession.findUnique({ where: { id: sessionId } })
-    if (!session || session.status === "CLOSED") {
+    // Charging wholesale price is a decision reserved to Administrador
+    // sessions — enforced here, before any DB access, regardless of what
+    // the client-side toggle sent.
+    const hasWholesaleItem = rawItems.some((item) => item.wholesale === true)
+    if (hasWholesaleItem && authSession?.user?.roleName !== "Administrador") {
+      return NextResponse.json(
+        { error: "Solo un administrador puede aplicar precio mayorista" },
+        { status: 403 }
+      )
+    }
+
+    const cashSession = await prisma.cashSession.findUnique({ where: { id: sessionId } })
+    if (!cashSession || cashSession.status === "CLOSED") {
       return NextResponse.json({ error: "La sesión de caja está cerrada" }, { status: 409 })
     }
 
@@ -39,7 +58,7 @@ export async function POST(request: NextRequest) {
     const productIds = [...new Set(rawItems.map((i) => i.productId))]
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, name: true, price: true },
+      select: { id: true, name: true, price: true, wholesalePrice: true },
     })
     const productMap = new Map(products.map((p) => [p.id, p]))
 
@@ -58,16 +77,53 @@ export async function POST(request: NextRequest) {
       if (!product) throw new Error(`ITEM_NOT_FOUND`)
       const variant = item.variantId ? variantMap.get(item.variantId) : null
       if (item.variantId && !variant) throw new Error(`ITEM_NOT_FOUND`)
-      const unitPrice = variant?.price != null ? Number(variant.price) : Number(product.price)
+
+      // An explicit wholesale request (already verified to come from an
+      // Administrador above) is a deliberate operator decision — it
+      // overrides even a variant-specific price.
+      let unitPrice: number
+      if (item.wholesale) {
+        if (product.wholesalePrice == null) {
+          throw new Error(`NO_WHOLESALE_PRICE:${product.name}`)
+        }
+        unitPrice = Number(product.wholesalePrice)
+      } else {
+        unitPrice = variant?.price != null ? Number(variant.price) : Number(product.price)
+      }
+
       const name = variant?.label ? `${product.name} - ${variant.label}` : product.name
       subtotal += unitPrice * item.quantity
       return { ...item, unitPrice, name }
     })
 
-    const tipAmount = Number(tip) > 0 ? Number(tip) : 0
+    // Tip is not applicable to a layaway — force it to 0 regardless of what
+    // the client sent, rather than error on it.
+    const tipAmount = !layaway && Number(tip) > 0 ? Number(tip) : 0
     const total = subtotal + tipAmount
 
-    if (paymentMethod === "CASH" && receivedAmount != null && Number(receivedAmount) < total) {
+    if (layaway) {
+      const deposit = Number(layaway.deposit)
+      if (!Number.isFinite(deposit) || deposit <= 0 || deposit >= total) {
+        return NextResponse.json(
+          { error: "El abono debe ser menor al total; para pagar todo usa una venta normal" },
+          { status: 400 }
+        )
+      }
+      if (layaway.deliverNow === false) {
+        if (!Number.isInteger(layaway.holdDays) || (layaway.holdDays as number) <= 0) {
+          return NextResponse.json(
+            { error: "Indica cuántos días se guarda el producto" },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
+    // The amount actually being collected right now: the full total for a
+    // normal sale, or just the deposit for a layaway.
+    const amountDue = layaway ? Number(layaway.deposit) : total
+
+    if (paymentMethod === "CASH" && receivedAmount != null && Number(receivedAmount) < amountDue) {
       return NextResponse.json({ error: "El monto recibido es insuficiente" }, { status: 400 })
     }
 
@@ -85,7 +141,7 @@ export async function POST(request: NextRequest) {
         data: {
           orderNumber,
           channel: "POS",
-          status: "CONFIRMED",
+          status: layaway ? "LAYAWAY" : "CONFIRMED",
           subtotal,
           shipping: 0,
           tip: tipAmount,
@@ -96,6 +152,13 @@ export async function POST(request: NextRequest) {
           cashierId: freshSession.userId,
           terminalId,
           sessionId,
+          isLayaway: Boolean(layaway),
+          deliverNow: layaway ? layaway.deliverNow : true,
+          holdDays: layaway && !layaway.deliverNow ? layaway.holdDays : null,
+          holdUntil:
+            layaway && !layaway.deliverNow
+              ? new Date(Date.now() + (layaway.holdDays as number) * 86400000)
+              : null,
           items: {
             create: resolvedItems.map((item) => ({
               productId: item.productId,
@@ -114,10 +177,10 @@ export async function POST(request: NextRequest) {
           orderId: order.id,
           sessionId,
           method: paymentMethod,
-          amount: total,
+          amount: amountDue,
           tip: tipAmount,
           receivedAmount: receivedAmount ?? null,
-          change: receivedAmount != null ? receivedAmount - total : null,
+          change: receivedAmount != null ? receivedAmount - amountDue : null,
         },
       })
 
@@ -158,6 +221,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: `Stock insuficiente para "${error.message.split(":")[1]}"` },
         { status: 409 }
+      )
+    }
+    if (error instanceof Error && error.message.startsWith("NO_WHOLESALE_PRICE:")) {
+      return NextResponse.json(
+        { error: `El producto "${error.message.split(":")[1]}" no tiene precio mayorista configurado` },
+        { status: 400 }
       )
     }
     if (error instanceof Error && error.message === "SESSION_CLOSED") {

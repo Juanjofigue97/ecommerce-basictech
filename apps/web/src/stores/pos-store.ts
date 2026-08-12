@@ -9,6 +9,10 @@ export interface POSCartItem {
   quantity: number
   stock: number
   variantLabel?: string
+  // A wholesale-priced line is a distinct decision (Administrador-only, see
+  // the checkout route) from a retail one on the same product — the two
+  // never merge into a single cart row, even when everything else matches.
+  wholesale?: boolean
 }
 
 interface POSState {
@@ -23,8 +27,8 @@ interface POSState {
   setContext: (terminalId: string, sessionId: string, cashierId: string) => void
   setCustomer: (id: string, name: string) => void
   addItem: (item: Omit<POSCartItem, "quantity">) => void
-  removeItem: (productId: string, variantId?: string) => void
-  updateQuantity: (productId: string, variantId: string | undefined, qty: number) => void
+  removeItem: (productId: string, variantId?: string, wholesale?: boolean) => void
+  updateQuantity: (productId: string, variantId: string | undefined, qty: number, wholesale?: boolean) => void
   clearCart: () => void
   setDelivery: (v: string) => void
 }
@@ -32,8 +36,12 @@ interface POSState {
 const DEFAULT_CUSTOMER_ID = ""
 const DEFAULT_CUSTOMER_NAME = "Consumidor Final"
 
-function sameItem(a: POSCartItem, productId: string, variantId?: string) {
-  return a.productId === productId && (a.variantId ?? undefined) === (variantId ?? undefined)
+function sameItem(a: POSCartItem, productId: string, variantId?: string, wholesale?: boolean) {
+  return (
+    a.productId === productId &&
+    (a.variantId ?? undefined) === (variantId ?? undefined) &&
+    Boolean(a.wholesale) === Boolean(wholesale)
+  )
 }
 
 export const usePOSStore = create<POSState>((set) => ({
@@ -52,12 +60,12 @@ export const usePOSStore = create<POSState>((set) => ({
 
   addItem: (item) =>
     set((s) => {
-      const existing = s.items.find((i) => sameItem(i, item.productId, item.variantId))
+      const existing = s.items.find((i) => sameItem(i, item.productId, item.variantId, item.wholesale))
       if (existing) {
         const maxQty = item.stock
         return {
           items: s.items.map((i) =>
-            sameItem(i, item.productId, item.variantId)
+            sameItem(i, item.productId, item.variantId, item.wholesale)
               ? { ...i, quantity: Math.min(i.quantity + 1, maxQty) }
               : i
           ),
@@ -66,18 +74,18 @@ export const usePOSStore = create<POSState>((set) => ({
       return { items: [...s.items, { ...item, quantity: 1 }] }
     }),
 
-  removeItem: (productId, variantId) =>
+  removeItem: (productId, variantId, wholesale) =>
     set((s) => ({
-      items: s.items.filter((i) => !sameItem(i, productId, variantId)),
+      items: s.items.filter((i) => !sameItem(i, productId, variantId, wholesale)),
     })),
 
-  updateQuantity: (productId, variantId, qty) =>
+  updateQuantity: (productId, variantId, qty, wholesale) =>
     set((s) => ({
       items:
         qty <= 0
-          ? s.items.filter((i) => !sameItem(i, productId, variantId))
+          ? s.items.filter((i) => !sameItem(i, productId, variantId, wholesale))
           : s.items.map((i) =>
-              sameItem(i, productId, variantId) ? { ...i, quantity: Math.min(qty, i.stock) } : i
+              sameItem(i, productId, variantId, wholesale) ? { ...i, quantity: Math.min(qty, i.stock) } : i
             ),
     })),
 

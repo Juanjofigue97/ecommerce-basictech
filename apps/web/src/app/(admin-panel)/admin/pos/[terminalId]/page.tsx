@@ -4,15 +4,19 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Image from "next/image"
 import { Search, ArrowLeft, UserRound, Minus, Plus, Trash2, X, Loader2, Wallet, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { usePOSStore } from "@/stores/pos-store"
 import { useSettingsStore } from "@/stores/settings-store"
 import { CustomerModal } from "@/components/pos/CustomerModal"
 import { PaymentModal } from "@/components/pos/PaymentModal"
+import { LayawaysPanel } from "@/components/pos/LayawaysPanel"
 import { VariantSelectorModal } from "@/components/pos/VariantSelectorModal"
 import { ReceiptModal, type ReceiptData } from "@/components/pos/ReceiptModal"
 import type { Product } from "@/types"
@@ -39,6 +43,10 @@ function formatCOP(n: number) {
 export default function POSPage() {
   const { terminalId } = useParams<{ terminalId: string }>()
   const router = useRouter()
+  const { data: authSession } = useSession()
+  const isAdministrador = authSession?.user?.roleName === "Administrador"
+  const [wholesaleMode, setWholesaleMode] = useState(false)
+  const effectiveWholesaleMode = isAdministrador && wholesaleMode
 
   const {
     terminalId: ctxTerminalId, sessionId, customerId, customerName,
@@ -143,6 +151,10 @@ export default function POSPage() {
     tip: number
     total: number
     receivedAmount?: number
+    isLayaway: boolean
+    deposit?: number
+    deliverNow?: boolean
+    holdDays?: number
   }) {
     if (!session || !sessionId) throw new Error("Sin sesión activa")
     if (!customerId) throw new Error("Selecciona un cliente")
@@ -162,6 +174,7 @@ export default function POSPage() {
           name: i.name,
           price: i.price,
           quantity: i.quantity,
+          wholesale: i.wholesale,
         })),
         paymentMethod: paymentData.paymentMethod,
         subtotal,
@@ -169,6 +182,13 @@ export default function POSPage() {
         total: paymentData.total,
         receivedAmount: paymentData.receivedAmount,
         delivery: delivery || undefined,
+        layaway: paymentData.isLayaway
+          ? {
+              deposit: paymentData.deposit,
+              deliverNow: paymentData.deliverNow,
+              holdDays: paymentData.holdDays,
+            }
+          : undefined,
       }),
     })
 
@@ -238,15 +258,18 @@ export default function POSPage() {
             {formatCOP(expectedCash)}
           </div>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="ml-auto flex items-center gap-2 text-sm"
-          onClick={() => setShowCustomer(true)}
-        >
-          <UserRound className="h-4 w-4" />
-          {customerName}
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <LayawaysPanel terminalId={terminalId} sessionId={sessionId} />
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 text-sm"
+            onClick={() => setShowCustomer(true)}
+          >
+            <UserRound className="h-4 w-4" />
+            {customerName}
+          </Button>
+        </div>
       </div>
 
       {/* Body */}
@@ -272,6 +295,18 @@ export default function POSPage() {
                 </button>
               )}
             </div>
+            {isAdministrador && (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="wholesaleMode"
+                  checked={wholesaleMode}
+                  onCheckedChange={setWholesaleMode}
+                />
+                <Label htmlFor="wholesaleMode" className="text-xs font-normal cursor-pointer">
+                  Precio mayorista
+                </Label>
+              </div>
+            )}
             <div className="flex gap-1.5 flex-wrap">
               <button
                 onClick={() => setCategoryFilter("all")}
@@ -314,6 +349,8 @@ export default function POSPage() {
                 {products.map((product) => {
                   const hasVariants = (product.variants?.length ?? 0) > 0
                   const outOfStock = product.stock === 0
+                  const hasWholesalePrice = product.wholesalePrice != null
+                  const applyWholesale = effectiveWholesaleMode && hasWholesalePrice
                   return (
                     <button
                       key={product.id}
@@ -326,8 +363,9 @@ export default function POSPage() {
                             productId: product.id,
                             name: product.name,
                             slug: product.slug,
-                            price: product.price,
+                            price: applyWholesale ? (product.wholesalePrice as number) : product.price,
                             stock: product.stock,
+                            wholesale: applyWholesale,
                           })
                         }
                       }}
@@ -362,12 +400,20 @@ export default function POSPage() {
                             Tallas
                           </Badge>
                         )}
+                        {effectiveWholesaleMode && !hasWholesalePrice && !outOfStock && (
+                          <Badge
+                            variant="outline"
+                            className="absolute top-1 left-1 text-[10px] px-1.5 py-0 bg-background/80"
+                          >
+                            Sin mayorista
+                          </Badge>
+                        )}
                       </div>
                       <span className="font-medium leading-tight line-clamp-2 text-xs">
                         {product.name}
                       </span>
                       <span className="mt-1 text-xs text-muted-foreground font-medium">
-                        {formatCOP(product.price)}
+                        {formatCOP(applyWholesale ? (product.wholesalePrice as number) : product.price)}
                       </span>
                     </button>
                   )
@@ -403,26 +449,31 @@ export default function POSPage() {
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={`${item.productId}-${item.variantId ?? ""}`} className="border-b">
+                    <tr key={`${item.productId}-${item.variantId ?? ""}-${item.wholesale ? "w" : "r"}`} className="border-b">
                       <td className="px-3 py-2">
                         <div className="text-xs font-mono text-muted-foreground">{item.slug}</div>
                         <div className="font-medium leading-tight text-xs">{item.name}</div>
                         {item.variantLabel && (
                           <div className="text-xs text-muted-foreground">{item.variantLabel}</div>
                         )}
+                        {item.wholesale && (
+                          <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0">
+                            Mayorista
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-2 py-2">
                         <div className="flex items-center gap-1">
                           <button
                             className="flex h-5 w-5 items-center justify-center rounded border bg-background hover:bg-muted"
-                            onClick={() => updateQuantity(item.productId, item.variantId, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.productId, item.variantId, item.quantity - 1, item.wholesale)}
                           >
                             <Minus className="h-3 w-3" />
                           </button>
                           <span className="w-6 text-center text-xs font-medium">{item.quantity}</span>
                           <button
                             className="flex h-5 w-5 items-center justify-center rounded border bg-background hover:bg-muted"
-                            onClick={() => updateQuantity(item.productId, item.variantId, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.productId, item.variantId, item.quantity + 1, item.wholesale)}
                           >
                             <Plus className="h-3 w-3" />
                           </button>
@@ -434,7 +485,7 @@ export default function POSPage() {
                       <td className="pr-1">
                         <button
                           className="flex h-6 w-6 items-center justify-center rounded text-destructive hover:bg-destructive/10"
-                          onClick={() => removeItem(item.productId, item.variantId)}
+                          onClick={() => removeItem(item.productId, item.variantId, item.wholesale)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -514,9 +565,11 @@ export default function POSPage() {
           productName={variantProduct.name}
           productSlug={variantProduct.slug}
           productPrice={variantProduct.price}
+          productWholesalePrice={variantProduct.wholesalePrice}
+          wholesale={effectiveWholesaleMode}
           variants={variantProduct.variants ?? []}
           variantAttributeNames={variantProduct.variantAttributeNames ?? []}
-          onAdd={({ variantId, variantLabel, price, stock }) =>
+          onAdd={({ variantId, variantLabel, price, stock, wholesale }) =>
             addItem({
               productId: variantProduct.id,
               variantId,
@@ -525,6 +578,7 @@ export default function POSPage() {
               slug: variantProduct.slug,
               price,
               stock,
+              wholesale,
             })
           }
         />

@@ -24,6 +24,10 @@ interface Props {
     tip: number
     total: number
     receivedAmount?: number
+    isLayaway: boolean
+    deposit?: number
+    deliverNow?: boolean
+    holdDays?: number
   }) => Promise<void>
 }
 
@@ -50,6 +54,16 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // Apartado (layaway) state — the customer pays a deposit instead of the
+  // full price. "Entregar producto ahora" defaults to OFF: something the
+  // cashier is deliberately entering as a layaway is, in the common case,
+  // being held in the store — the deliberate exception (hand it over anyway)
+  // should be an explicit opt-in, not the default.
+  const [isLayaway, setIsLayaway] = useState(false)
+  const [deposit, setDeposit] = useState(0)
+  const [deliverNow, setDeliverNow] = useState(false)
+  const [holdDays, setHoldDays] = useState("")
+
   useEffect(() => {
     if (open) {
       setWithTip(false)
@@ -57,16 +71,38 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
       setMethod("CASH")
       setReceived("")
       setError("")
+      setIsLayaway(false)
+      setDeposit(0)
+      setDeliverNow(false)
+      setHoldDays("")
     }
   }, [open])
 
-  const tipAmount = withTip ? Math.round((subtotal * tipPct) / 100) : 0
+  const tipAmount = !isLayaway && withTip ? Math.round((subtotal * tipPct) / 100) : 0
   const total = subtotal + tipAmount
+  // What's actually being collected right now: the full total for a normal
+  // sale, or just the deposit for a layaway.
+  const amountDue = isLayaway ? deposit : total
   const receivedNum = received === "" ? 0 : Number(received)
-  const change = method === "CASH" ? receivedNum - total : 0
+  const change = method === "CASH" ? receivedNum - amountDue : 0
+
+  const holdDaysNum = holdDays === "" ? 0 : Number(holdDays)
+  const layawayValid =
+    !isLayaway ||
+    (deposit > 0 &&
+      deposit < total &&
+      (deliverNow || (Number.isInteger(holdDaysNum) && holdDaysNum > 0)))
 
   async function handleConfirm() {
-    if (method === "CASH" && receivedNum < total) {
+    if (!layawayValid) {
+      setError(
+        deposit <= 0 || deposit >= total
+          ? "El abono debe ser mayor a cero y menor al total"
+          : "Indica cuántos días se guarda el producto"
+      )
+      return
+    }
+    if (method === "CASH" && receivedNum < amountDue) {
       setError("El dinero recibido es insuficiente")
       return
     }
@@ -78,6 +114,10 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
         tip: tipAmount,
         total,
         receivedAmount: method === "CASH" ? receivedNum : undefined,
+        isLayaway,
+        deposit: isLayaway ? deposit : undefined,
+        deliverNow: isLayaway ? deliverNow : undefined,
+        holdDays: isLayaway && !deliverNow ? holdDaysNum : undefined,
       })
       onClose()
     } catch (e) {
@@ -97,6 +137,17 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
         <div className="space-y-4">
           {error && <p className="text-sm text-destructive">{error}</p>}
 
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tipo de venta</Label>
+              <div className="flex items-center gap-2 text-sm">
+                <span className={!isLayaway ? "font-medium" : "text-muted-foreground"}>Venta completa</span>
+                <Switch checked={isLayaway} onCheckedChange={setIsLayaway} />
+                <span className={isLayaway ? "font-medium" : "text-muted-foreground"}>Apartado</span>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Total</Label>
             <div className="flex items-center justify-end rounded-md border bg-muted/40 px-3 py-2 text-lg font-bold">
@@ -104,30 +155,72 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Propina</Label>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">con propina</span>
-                <Switch checked={withTip} onCheckedChange={setWithTip} />
+          {isLayaway && (
+            <div className="space-y-3 rounded-md border p-3">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Abono</Label>
+                <CurrencyInput
+                  value={deposit}
+                  onChange={setDeposit}
+                  placeholder="$ 0"
+                />
+                {deposit > 0 && deposit >= total && (
+                  <p className="text-xs text-destructive">El abono debe ser menor al total</p>
+                )}
               </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Entregar producto ahora
+                </Label>
+                <Switch checked={deliverNow} onCheckedChange={setDeliverNow} />
+              </div>
+
+              {!deliverNow && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Días que se guarda el producto
+                  </Label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={holdDays}
+                    onChange={(e) => setHoldDays(e.target.value)}
+                    placeholder="15"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+              )}
             </div>
-            {withTip && (
-              <div className="flex items-center gap-3">
-                <Select value={String(tipPct)} onValueChange={(v) => setTipPct(Number(v))}>
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIP_OPTIONS.map((p) => (
-                      <SelectItem key={p} value={String(p)}>{p}%</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-sm font-medium">{formatCOP(tipAmount)}</span>
+          )}
+
+          {!isLayaway && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Propina</Label>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">con propina</span>
+                  <Switch checked={withTip} onCheckedChange={setWithTip} />
+                </div>
               </div>
-            )}
-          </div>
+              {withTip && (
+                <div className="flex items-center gap-3">
+                  <Select value={String(tipPct)} onValueChange={(v) => setTipPct(Number(v))}>
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIP_OPTIONS.map((p) => (
+                        <SelectItem key={p} value={String(p)}>{p}%</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm font-medium">{formatCOP(tipAmount)}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Medio de pago</Label>
@@ -147,7 +240,7 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
             <>
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Dinero recibido
+                  Dinero recibido {isLayaway && "(por el abono)"}
                 </Label>
                 <CurrencyInput
                   value={receivedNum}
@@ -175,7 +268,7 @@ export function PaymentModal({ open, onClose, subtotal, onConfirm }: Props) {
             <Button variant="secondary" onClick={onClose} disabled={loading} className="flex-1">
               Cancelar
             </Button>
-            <Button onClick={handleConfirm} disabled={loading} className="flex-1">
+            <Button onClick={handleConfirm} disabled={loading || !layawayValid} className="flex-1">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Registrar
             </Button>

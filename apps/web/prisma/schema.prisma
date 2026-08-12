@@ -24,6 +24,7 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+  LAYAWAY
 }
 
 enum PaymentMethod {
@@ -282,6 +283,19 @@ model Order {
   paymentMethod    String
   paymentSessionId String?
   notes            String?
+  // Layaway ("Apartado") fields — isLayaway is set once at creation and never
+  // cleared, so it stays a permanent marker of "this order started as a
+  // layaway" even after status later moves on to CONFIRMED (paid off) or
+  // CANCELLED. deliverNow records whether the merchandise was handed to the
+  // customer at sale time (always true for a normal sale) or held in-store
+  // (false, only possible for a layaway). holdDays/holdUntil are only ever
+  // set when deliverNow is false; holdUntil is computed once at creation
+  // (createdAt + holdDays days) and never recalculated — there is no
+  // auto-expiry job, the countdown is purely informational.
+  isLayaway  Boolean   @default(false)
+  deliverNow Boolean   @default(true)
+  holdDays   Int?
+  holdUntil  DateTime?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 

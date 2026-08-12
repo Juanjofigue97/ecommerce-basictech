@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/api-auth"
 
 export async function GET(request: NextRequest) {
+  const { response: authError } = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
@@ -11,7 +15,14 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
 
     if (status && status !== "all") {
-      where.status = status.toUpperCase()
+      if (status.toLowerCase() === "layaway") {
+        // "layaway" isn't a literal OrderStatus — it's a view over every
+        // order that is (or ever was) a layaway, regardless of its current
+        // status (LAYAWAY, later CONFIRMED once paid off, or CANCELLED).
+        where.isLayaway = true
+      } else {
+        where.status = status.toUpperCase()
+      }
     }
 
     const [orders, total] = await Promise.all([
@@ -21,6 +32,9 @@ export async function GET(request: NextRequest) {
           user: {
             select: { name: true, email: true },
           },
+          customer: {
+            select: { name: true, phone: true, email: true },
+          },
           address: true,
           items: {
             include: {
@@ -28,6 +42,12 @@ export async function GET(request: NextRequest) {
                 select: { images: true },
               },
             },
+          },
+          payments: {
+            select: { amount: true },
+          },
+          terminal: {
+            select: { name: true },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -41,8 +61,11 @@ export async function GET(request: NextRequest) {
       id: order.id,
       orderNumber: order.orderNumber,
       customer: {
-        name: order.user?.name ?? "Cliente",
-        email: order.user?.email ?? "",
+        // POS orders are linked via customerId/customer, not userId — prefer
+        // that when present, fall back to the online-order shape (order.user).
+        name: order.customer?.name ?? order.user?.name ?? "Cliente",
+        email: order.customer?.email ?? order.user?.email ?? "",
+        phone: order.customer?.phone ?? "",
       },
       status: order.status.toLowerCase(),
       subtotal: Number(order.subtotal),
@@ -50,6 +73,12 @@ export async function GET(request: NextRequest) {
       total: Number(order.total),
       paymentMethod: order.paymentMethod,
       channel: order.channel,
+      isLayaway: order.isLayaway,
+      deliverNow: order.deliverNow,
+      holdUntil: order.holdUntil ? order.holdUntil.toISOString() : null,
+      totalPaid: order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+      terminal: order.terminal ? { name: order.terminal.name } : null,
+      terminalId: order.terminalId,
       shippingAddress: order.address ? {
         name: order.address.name,
         address: order.address.address,

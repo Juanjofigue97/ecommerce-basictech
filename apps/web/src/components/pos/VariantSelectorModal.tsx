@@ -14,6 +14,8 @@ interface Props {
   productName: string
   productSlug: string
   productPrice: number
+  productWholesalePrice?: number
+  wholesale?: boolean
   variants: ProductVariantItem[]
   variantAttributeNames: string[]
   onAdd: (item: {
@@ -21,6 +23,7 @@ interface Props {
     variantLabel: string
     price: number
     stock: number
+    wholesale?: boolean
   }) => void
 }
 
@@ -37,6 +40,8 @@ export function VariantSelectorModal({
   onClose,
   productName,
   productPrice,
+  productWholesalePrice,
+  wholesale,
   variants,
   variantAttributeNames,
   onAdd,
@@ -189,7 +194,11 @@ export function VariantSelectorModal({
       )
     : null
 
-  const variantPrice = matchingVariant?.price ?? productPrice
+  // A wholesale request overrides even a variant-specific price (same rule
+  // the checkout route enforces) — but only when the product actually has
+  // one configured; otherwise it's a no-op and stays a retail line.
+  const effectiveWholesale = Boolean(wholesale) && productWholesalePrice != null
+  const variantPrice = effectiveWholesale ? productWholesalePrice! : (matchingVariant?.price ?? productPrice)
   const outOfStock = matchingVariant !== undefined && matchingVariant !== null && matchingVariant.stock === 0
 
   function handleAdd() {
@@ -199,6 +208,7 @@ export function VariantSelectorModal({
       variantLabel: matchingVariant.label ?? variantAttributeNames.map((a) => selected[a]).join(" / "),
       price: variantPrice,
       stock: matchingVariant.stock,
+      wholesale: effectiveWholesale,
     })
     onClose()
   }
