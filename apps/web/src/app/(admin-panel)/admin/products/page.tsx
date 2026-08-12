@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useCurrency } from "@/hooks/use-currency"
 import Link from "next/link"
 import Image from "next/image"
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Loader2, ArrowUpDown } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Loader2, ArrowUpDown, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -180,6 +180,12 @@ export default function AdminProductsPage() {
             <Link href="/admin/products/import-export">
               <ArrowUpDown className="mr-2 h-4 w-4" />
               Import / Export
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/admin/products/bulk-price">
+              <DollarSign className="mr-2 h-4 w-4" />
+              Editar precios masivamente
             </Link>
           </Button>
           <Button asChild>
