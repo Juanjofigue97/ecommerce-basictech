@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
@@ -13,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { CurrencyInput } from "@/components/ui/currency-input"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
@@ -36,6 +38,8 @@ const productSchema = z.object({
   description: z.string().min(1, "La descripción es requerida"),
   price: z.number().min(0, "El precio debe ser mayor a 0"),
   comparePrice: z.number().optional(),
+  wholesalePrice: z.number().positive().optional(),
+  cost: z.number().positive().optional(),
   stock: z.number().min(0).optional(),
   categoryId: z.string().min(1, "La categoría es requerida"),
   brandId: z.string().min(1, "La marca es requerida"),
@@ -51,8 +55,18 @@ function generateSlug(name: string) {
   return name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
 }
 
+function formatCOP(n: number): string {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(n)
+}
+
 export default function NewProductPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const isAdministrador = session?.user?.roleName === "Administrador"
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([])
@@ -243,6 +257,40 @@ export default function NewProductPage() {
                 <Input id="comparePrice" type="number" step="0.01" placeholder="0.00" {...register("comparePrice", { valueAsNumber: true })} />
               </div>
             </div>
+            {isAdministrador && (
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="wholesalePrice">Precio mayorista (opcional)</Label>
+                <CurrencyInput
+                  id="wholesalePrice"
+                  value={watch("wholesalePrice") ?? 0}
+                  onChange={(v) => setValue("wholesalePrice", v > 0 ? v : undefined)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Solo visible para administradores. Se usa en el punto de venta.
+                </p>
+                {errors.wholesalePrice && <p className="text-sm text-destructive">{errors.wholesalePrice.message}</p>}
+              </div>
+            )}
+            {isAdministrador && (
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="cost">Costo (opcional)</Label>
+                <CurrencyInput
+                  id="cost"
+                  value={watch("cost") ?? 0}
+                  onChange={(v) => setValue("cost", v > 0 ? v : undefined)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Solo visible para administradores. Te sirve para calcular el margen.
+                </p>
+                {errors.cost && <p className="text-sm text-destructive">{errors.cost.message}</p>}
+                {watch("price") > 0 && (watch("cost") ?? 0) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Margen: {formatCOP(watch("price") - (watch("cost") ?? 0))}
+                    {" "}({(((watch("price") - (watch("cost") ?? 0)) / watch("price")) * 100).toFixed(1)}%)
+                  </p>
+                )}
+              </div>
+            )}
             {!useVariants && (
               <div className="space-y-2 max-w-xs">
                 <Label htmlFor="stock">Stock</Label>

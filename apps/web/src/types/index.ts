@@ -14,6 +14,7 @@ export interface Product {
   category: string
   price: number
   originalPrice?: number
+  wholesalePrice?: number
   images: string[]
   description: string
   specs: Record<string, string>

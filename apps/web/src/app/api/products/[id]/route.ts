@@ -2,14 +2,45 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { transformProduct } from "@/lib/transformers"
 import { requireAdmin } from "@/lib/api-auth"
+import { auth } from "@/lib/auth"
 
 type Params = Promise<{ id: string }>
+
+// Wholesale pricing is a decision reserved to Administrador sessions.
+// Non-admins get their wholesalePrice input silently dropped (defense in
+// depth — the field isn't even shown in their admin UI), never a 400.
+function resolveWholesalePrice(raw: unknown): { value?: number | null; error?: string } {
+  if (raw === undefined) return {}
+  if (raw === null) return { value: null }
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) {
+    return { error: "El precio mayorista debe ser un número positivo" }
+  }
+  return { value: raw }
+}
+
+// Cost is a decision reserved to Administrador sessions, same as
+// wholesalePrice — it reveals margin. Non-admins get their cost input
+// silently dropped, never a 400.
+function resolveCost(raw: unknown): { value?: number | null; error?: string } {
+  if (raw === undefined) return {}
+  if (raw === null) return { value: null }
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) {
+    return { error: "El costo debe ser un número positivo" }
+  }
+  return { value: raw }
+}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Params }
 ) {
   try {
+    // Soft check: this endpoint stays publicly accessible, but only an
+    // Administrador session gets wholesalePrice/cost in the payload.
+    const session = await auth()
+    const includeWholesalePrice = session?.user?.roleName === "Administrador"
+    const includeCost = session?.user?.roleName === "Administrador"
+
     const { id } = await params
 
     const product = await prisma.product.findFirst({
@@ -72,6 +103,12 @@ export async function GET(
       categoryId: product.categoryId,
       brandId: product.brandId,
       comparePrice: product.comparePrice ? Number(product.comparePrice) : undefined,
+      wholesalePrice: includeWholesalePrice
+        ? (product.wholesalePrice != null ? Number(product.wholesalePrice) : undefined)
+        : undefined,
+      cost: includeCost
+        ? (product.cost != null ? Number(product.cost) : undefined)
+        : undefined,
       isNew: product.isNew,
       isFeatured: product.isFeatured,
       isActive: product.isActive,
@@ -88,12 +125,34 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Params }
 ) {
-  const { response: authError } = await requireAdmin()
+  const { session, response: authError } = await requireAdmin()
   if (authError) return authError
 
   try {
     const { id } = await params
     const body = await request.json()
+    const isAdministrador = session?.user?.roleName === "Administrador"
+
+    let wholesalePriceData: { wholesalePrice?: number | null } = {}
+    if (isAdministrador) {
+      const resolved = resolveWholesalePrice(body.wholesalePrice)
+      if (resolved.error) {
+        return NextResponse.json({ error: resolved.error }, { status: 400 })
+      }
+      // PUT is a full-object replace (the edit form always resends every
+      // field it loaded) — mirror comparePrice's existing convention below
+      // and collapse "omitted" into an explicit clear, same as that field.
+      wholesalePriceData = { wholesalePrice: resolved.value ?? null }
+    }
+
+    let costData: { cost?: number | null } = {}
+    if (isAdministrador) {
+      const resolved = resolveCost(body.cost)
+      if (resolved.error) {
+        return NextResponse.json({ error: resolved.error }, { status: 400 })
+      }
+      costData = { cost: resolved.value ?? null }
+    }
 
     type VariantInput = {
       id?: string
@@ -205,6 +264,8 @@ export async function PUT(
           description: body.description,
           price: body.price,
           comparePrice: body.comparePrice ?? null,
+          ...wholesalePriceData,
+          ...costData,
           stock: totalStock,
           images: body.images,
           isNew: body.isNew,

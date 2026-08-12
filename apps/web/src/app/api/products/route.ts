@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { transformProduct } from "@/lib/transformers"
 import { requireAdmin } from "@/lib/api-auth"
+import { auth } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
+    // Soft check: this endpoint stays publicly accessible, but only an
+    // Administrador session gets wholesalePrice/cost in the payload.
+    const session = await auth()
+    const includeWholesalePrice = session?.user?.roleName === "Administrador"
+    const includeCost = session?.user?.roleName === "Administrador"
+
     const { searchParams } = new URL(request.url)
 
     // Query params
@@ -159,6 +166,12 @@ export async function GET(request: NextRequest) {
           stock: totalStock,
           variants: mappedVariants,
           variantAttributeNames: attrNamesOrdered,
+          wholesalePrice: includeWholesalePrice
+            ? (p.wholesalePrice != null ? Number(p.wholesalePrice) : undefined)
+            : undefined,
+          cost: includeCost
+            ? (p.cost != null ? Number(p.cost) : undefined)
+            : undefined,
         }
       }),
       total,
@@ -174,12 +187,55 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Wholesale pricing is a decision reserved to Administrador sessions.
+// Non-admins get their wholesalePrice input silently dropped (defense in
+// depth — the field isn't even shown in their admin UI), never a 400.
+function resolveWholesalePrice(raw: unknown): { value?: number | null; error?: string } {
+  if (raw === undefined) return {}
+  if (raw === null) return { value: null }
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) {
+    return { error: "El precio mayorista debe ser un número positivo" }
+  }
+  return { value: raw }
+}
+
+// Cost is a decision reserved to Administrador sessions, same as
+// wholesalePrice — it reveals margin. Non-admins get their cost input
+// silently dropped, never a 400.
+function resolveCost(raw: unknown): { value?: number | null; error?: string } {
+  if (raw === undefined) return {}
+  if (raw === null) return { value: null }
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) {
+    return { error: "El costo debe ser un número positivo" }
+  }
+  return { value: raw }
+}
+
 export async function POST(request: NextRequest) {
-  const { response: authError } = await requireAdmin()
+  const { session, response: authError } = await requireAdmin()
   if (authError) return authError
 
   try {
     const body = await request.json()
+    const isAdministrador = session?.user?.roleName === "Administrador"
+
+    let wholesalePriceData: { wholesalePrice?: number | null } = {}
+    if (isAdministrador) {
+      const resolved = resolveWholesalePrice(body.wholesalePrice)
+      if (resolved.error) {
+        return NextResponse.json({ error: resolved.error }, { status: 400 })
+      }
+      wholesalePriceData = { wholesalePrice: resolved.value }
+    }
+
+    let costData: { cost?: number | null } = {}
+    if (isAdministrador) {
+      const resolved = resolveCost(body.cost)
+      if (resolved.error) {
+        return NextResponse.json({ error: resolved.error }, { status: 400 })
+      }
+      costData = { cost: resolved.value }
+    }
 
     type VariantInput = {
       sku?: string
@@ -209,6 +265,8 @@ export async function POST(request: NextRequest) {
         description: body.description,
         price: body.price,
         comparePrice: body.comparePrice,
+        ...wholesalePriceData,
+        ...costData,
         stock: variants.length > 0 ? variants.reduce((s, v) => s + (v.stock ?? 0), 0) : (body.stock || 0),
         images: body.images || [],
         specs: body.specs || {},

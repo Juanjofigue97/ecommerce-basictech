@@ -200,9 +200,13 @@ model Product {
   name         String
   slug         String   @unique
   description  String?
-  price        Decimal  @db.Decimal(10, 2)
-  comparePrice Decimal? @db.Decimal(10, 2)
-  stock        Int      @default(0)
+  price          Decimal  @db.Decimal(10, 2)
+  comparePrice   Decimal? @db.Decimal(10, 2)
+  wholesalePrice Decimal? @db.Decimal(10, 2)
+  // What the store paid for this unit. Administrador-only, same as
+  // wholesalePrice, because it reveals margin.
+  cost           Decimal? @db.Decimal(10, 2)
+  stock          Int      @default(0)
   images       String[]
   specs        Json?
   isNew        Boolean  @default(false)
