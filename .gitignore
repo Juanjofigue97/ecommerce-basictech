@@ -51,3 +51,7 @@ apps/mobile/web-build/
 # Local AI runtime state
 .atl/
 .codegraph/
+
+# Business data and documents (inventory exports, manuals)
+/*.csv
+/*.pdf
